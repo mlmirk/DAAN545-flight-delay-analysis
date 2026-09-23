@@ -16,11 +16,15 @@ build/
 # Jupyter
 .ipynb_checkpoints/
 
-# Data (keep folder structure; ignore large local files)
+# Data (share small source extracts; ignore bulky local dumps)
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/*.csv
+!data/raw/*.xlsx
+!data/raw/*.xls
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/*.csv
 
 # OS / editor
 .DS_Store
