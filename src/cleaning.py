@@ -44,6 +44,92 @@ CAUSE_DELAY_COLS = [
 ]
 NUMERIC_COLS = COUNT_COLS + DELAY_MINUTE_COLS
 
+# OpenFlights airports.dat — https://github.com/jpatokal/openflights/blob/master/data/airports.dat
+OPENFLIGHTS_SOURCE_URL = (
+    "https://github.com/jpatokal/openflights/blob/master/data/airports.dat"
+)
+OPENFLIGHTS_COLUMNS = [
+    "airport_id",
+    "name",
+    "city",
+    "country",
+    "iata",
+    "icao",
+    "lat",
+    "lon",
+    "altitude_ft",
+    "timezone_offset",
+    "dst",
+    "tz",
+    "type",
+    "source",
+]
+
+# Contiguous US + DC census regions (for one-hots / group comparisons)
+US_CENSUS_REGION = {
+    "CT": "Northeast",
+    "ME": "Northeast",
+    "MA": "Northeast",
+    "NH": "Northeast",
+    "RI": "Northeast",
+    "VT": "Northeast",
+    "NJ": "Northeast",
+    "NY": "Northeast",
+    "PA": "Northeast",
+    "IL": "Midwest",
+    "IN": "Midwest",
+    "MI": "Midwest",
+    "OH": "Midwest",
+    "WI": "Midwest",
+    "IA": "Midwest",
+    "KS": "Midwest",
+    "MN": "Midwest",
+    "MO": "Midwest",
+    "NE": "Midwest",
+    "ND": "Midwest",
+    "SD": "Midwest",
+    "DE": "South",
+    "DC": "South",
+    "FL": "South",
+    "GA": "South",
+    "MD": "South",
+    "NC": "South",
+    "SC": "South",
+    "VA": "South",
+    "WV": "South",
+    "AL": "South",
+    "KY": "South",
+    "MS": "South",
+    "TN": "South",
+    "AR": "South",
+    "LA": "South",
+    "OK": "South",
+    "TX": "South",
+    "AZ": "West",
+    "CO": "West",
+    "ID": "West",
+    "MT": "West",
+    "NV": "West",
+    "NM": "West",
+    "UT": "West",
+    "WY": "West",
+    "AK": "West",
+    "CA": "West",
+    "HI": "West",
+    "OR": "West",
+    "WA": "West",
+}
+
+TZ_TO_GROUP = {
+    "America/New_York": "Eastern",
+    "America/Chicago": "Central",
+    "America/Denver": "Mountain",
+    "America/Phoenix": "Mountain",  # no DST, still Mountain zone
+    "America/Los_Angeles": "Pacific",
+    "America/Anchorage": "Alaska",
+    "Pacific/Honolulu": "Hawaii",
+}
+
 
 def load_delay_cause(csv_path) -> pd.DataFrame:
     """Load the Airline Delay Cause CSV and normalize column names."""
@@ -57,6 +143,130 @@ def load_column_definitions(xlsx_path) -> pd.DataFrame:
     defs = pd.read_excel(xlsx_path)
     defs.columns = [c.strip() for c in defs.columns]
     return defs
+
+
+def load_openflights_airports(dat_path) -> pd.DataFrame:
+    """
+    Load OpenFlights ``airports.dat`` and apply light cleaning.
+
+    Source: https://github.com/jpatokal/openflights/blob/master/data/airports.dat
+    (CSV, no header; missing values encoded as ``\\N``).
+
+    Cleaning steps:
+    - Assign OpenFlights column names
+    - Convert ``\\N`` sentinels to null
+    - Drop rows with no IATA code (cannot join to BTS ``airport``)
+    - Uppercase / strip IATA codes
+    - Keep one row per IATA (first occurrence)
+    - Coerce lat/lon/altitude/timezone to numeric
+    """
+    air = pd.read_csv(
+        dat_path,
+        header=None,
+        names=OPENFLIGHTS_COLUMNS,
+        na_values=["\\N"],
+    )
+    air["iata"] = air["iata"].astype("string").str.strip().str.upper()
+    air = air[air["iata"].notna() & (air["iata"] != "")].copy()
+    air = air.drop_duplicates(subset=["iata"], keep="first")
+
+    for col in ("lat", "lon", "altitude_ft", "timezone_offset"):
+        air[col] = pd.to_numeric(air[col], errors="coerce")
+
+    return air.reset_index(drop=True)
+
+
+def parse_state_from_airport_name(airport_name: pd.Series) -> pd.Series:
+    """Extract US state/DC abbreviation from BTS ``City, ST: Airport`` names."""
+    return airport_name.astype("string").str.extract(r",\s*([A-Z]{2}):", expand=False)
+
+
+def build_airport_lookup(
+    airports: pd.DataFrame,
+    airport_codes: Iterable[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Build a slim airport reference table for joining onto delay rows.
+
+    If ``airport_codes`` is provided, keep only those IATA codes (avoids carrying
+    the full worldwide OpenFlights file into the analysis table).
+    """
+    lookup = airports.rename(
+        columns={
+            "name": "of_airport_name",
+            "city": "of_city",
+            "country": "of_country",
+        }
+    ).copy()
+
+    if airport_codes is not None:
+        codes = {str(c).strip().upper() for c in airport_codes}
+        lookup = lookup[lookup["iata"].isin(codes)].copy()
+
+    lookup["tz_group"] = lookup["tz"].map(TZ_TO_GROUP).fillna("Other")
+    keep = [
+        "iata",
+        "of_airport_name",
+        "of_city",
+        "of_country",
+        "lat",
+        "lon",
+        "altitude_ft",
+        "timezone_offset",
+        "tz",
+        "tz_group",
+    ]
+    return lookup[keep].reset_index(drop=True)
+
+
+def join_airport_attributes(
+    delay_df: pd.DataFrame,
+    airports: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Left-join OpenFlights attributes onto BTS delay rows on ``airport`` == ``iata``.
+
+    Also parses ``state`` from BTS ``airport_name`` and maps ``census_region``.
+
+    Returns ``(enriched_df, match_report)`` where ``match_report`` supports the
+    P1 writeup (samples matched vs lost at airport and row level).
+    """
+    out = delay_df.copy()
+    out["airport"] = out["airport"].astype("string").str.strip().str.upper()
+
+    codes = out["airport"].dropna().unique().tolist()
+    lookup = build_airport_lookup(airports, airport_codes=codes)
+
+    before_rows = len(out)
+    before_airports = int(out["airport"].nunique())
+    matched_airports = set(lookup["iata"])
+    delay_airports = set(codes)
+    lost_airports = sorted(delay_airports - matched_airports)
+
+    out = out.merge(lookup, how="left", left_on="airport", right_on="iata")
+    if "iata" in out.columns:
+        out = out.drop(columns=["iata"])
+
+    out["state"] = parse_state_from_airport_name(out["airport_name"])
+    out["census_region"] = out["state"].map(US_CENSUS_REGION)
+
+    matched_rows = int(out["lat"].notna().sum())
+    report = {
+        "source": OPENFLIGHTS_SOURCE_URL,
+        "n_openflights_with_iata": int(airports["iata"].nunique()),
+        "n_airports_in_delay": before_airports,
+        "n_airports_matched": before_airports - len(lost_airports),
+        "n_airports_lost": len(lost_airports),
+        "lost_airport_codes": lost_airports,
+        "n_rows_before": before_rows,
+        "n_rows_matched": matched_rows,
+        "n_rows_unmatched": before_rows - matched_rows,
+        "match_rate_airports": round(
+            100 * (before_airports - len(lost_airports)) / max(before_airports, 1), 2
+        ),
+        "match_rate_rows": round(100 * matched_rows / max(before_rows, 1), 2),
+    }
+    return out, report
 
 
 def missingness_report(df: pd.DataFrame) -> pd.DataFrame:

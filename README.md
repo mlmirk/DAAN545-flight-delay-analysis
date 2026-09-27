@@ -189,6 +189,8 @@ DAAN545-flight-delay-analysis/
 
 Put large data files in `data/raw/` locally. Prefer links or shared drive notes in `docs/` instead of uploading huge CSVs to GitHub.
 
+Data provenance (BTS + OpenFlights airports, cleaning notes): [`docs/data_sources.md`](docs/data_sources.md).
+
 ---
 
 ## Quick glossary

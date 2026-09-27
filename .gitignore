@@ -22,6 +22,7 @@ data/raw/*
 !data/raw/*.csv
 !data/raw/*.xlsx
 !data/raw/*.xls
+!data/raw/*.dat
 data/processed/*
 !data/processed/.gitkeep
 !data/processed/*.csv
