@@ -8,3 +8,4 @@ scipy>=1.11
 jupyter>=1.0
 ipykernel>=6.29
 openpyxl>=3.1
+mlxtend>=0.23

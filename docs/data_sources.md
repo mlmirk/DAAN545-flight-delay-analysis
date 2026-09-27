@@ -33,3 +33,12 @@ Implemented in `load_openflights_airports` / `join_airport_attributes`:
 
 - **Key:** BTS `airport` = OpenFlights `iata` (e.g. `ATL`, `ORD`)
 - The notebook prints airport-level and row-level **matched vs lost** counts for the P1 integration writeup
+
+## 3. Association-rule binary matrix (derived)
+
+- **Built from:** `data/processed/airline_delay_cause_with_airports.csv`
+- **Code:** `src/association_rules.py` → `build_transaction_matrix`
+- **Notebook:** `notebooks/02_association_rules.ipynb`
+- **Exports:** `association_binary_matrix.csv`, `association_rules_min_support_0_05.csv`
+
+Binary items include discretized delay/cancel rates, cause-dominance flags, season, census region / timezone one-hots, altitude/latitude flags, and top carrier/airport indicators for mlxtend `apriori` / `fpgrowth` / `association_rules`.

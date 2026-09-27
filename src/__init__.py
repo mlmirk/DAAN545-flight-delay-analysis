@@ -1,5 +1,6 @@
 """Public helpers for the DAAN545 flight-delay analysis project."""
 
+from .association_rules import build_transaction_matrix
 from .cleaning import (
     CAUSE_COUNT_COLS,
     CAUSE_DELAY_COLS,
@@ -31,6 +32,7 @@ __all__ = [
     "OPENFLIGHTS_SOURCE_URL",
     "add_derived_features",
     "build_airport_lookup",
+    "build_transaction_matrix",
     "clean_delay_cause",
     "duplicate_key_report",
     "iqr_outlier_mask",
