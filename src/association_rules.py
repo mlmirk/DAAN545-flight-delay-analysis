@@ -89,6 +89,17 @@ def build_transaction_matrix(
     if "lat" in work.columns and np.isfinite(lat_med):
         items["northern"] = work["lat"] >= lat_med
 
+    # Hub / ops profile (if joined)
+    if "slot_controlled" in work.columns:
+        items["slot_controlled"] = work["slot_controlled"].fillna(False).astype(bool)
+    if "runway_count" in work.columns:
+        rwy_med = float(work["runway_count"].median())
+        items["many_runways"] = work["runway_count"] >= rwy_med
+    if "hub_size" in work.columns:
+        for size in sorted(work["hub_size"].dropna().astype(str).unique()):
+            safe = size.replace(" ", "_")
+            items[f"hub_{safe}"] = work["hub_size"].astype(str) == size
+
     # One-hot top carriers / airports (keeps matrix manageable)
     if top_carriers is not None:
         carriers = {str(c).upper() for c in top_carriers}

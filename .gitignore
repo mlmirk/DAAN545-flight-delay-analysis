@@ -23,6 +23,8 @@ data/raw/*
 !data/raw/*.xlsx
 !data/raw/*.xls
 !data/raw/*.dat
+# scratch downloads / temp extracts (leading underscore)
+data/raw/_*
 data/processed/*
 !data/processed/.gitkeep
 !data/processed/*.csv

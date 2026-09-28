@@ -191,6 +191,8 @@ Put large data files in `data/raw/` locally. Prefer links or shared drive notes 
 
 Data provenance (BTS + OpenFlights airports, cleaning notes): [`docs/data_sources.md`](docs/data_sources.md).
 
+Domain / analysis terms for the writeup: [`docs/glossary.md`](docs/glossary.md).
+
 ---
 
 ## Quick glossary

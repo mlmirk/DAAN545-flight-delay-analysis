@@ -269,6 +269,90 @@ def join_airport_attributes(
     return out, report
 
 
+# FAA hub / ops profile — see docs/data_sources.md
+FAA_ENPLANEMENTS_CY23_URL = (
+    "https://www.faa.gov/airports/planning_capacity/"
+    "passenger_allcargo_stats/passenger/cy23_commercial_service_enplanements"
+)
+OURAIRPORTS_RUNWAYS_URL = (
+    "https://davidmegginson.github.io/ourairports-data/runways.csv"
+)
+SLOT_CONTROLLED_AIRPORTS = frozenset({"JFK", "LGA", "EWR", "DCA"})
+
+
+def load_airport_hub_profile(csv_path) -> pd.DataFrame:
+    """
+    Load the slim airport hub/ops profile CSV.
+
+    Built from FAA CY2023 hub classifications + OurAirports runway counts;
+    ``slot_controlled`` flags JFK/LGA/EWR/DCA.
+    """
+    hub = pd.read_csv(csv_path)
+    hub["airport"] = hub["airport"].astype("string").str.strip().str.upper()
+    hub["hub_size"] = hub["hub_size"].astype("string").str.strip()
+    hub["hub_code"] = hub["hub_code"].astype("string").str.strip().str.upper()
+    hub["slot_controlled"] = hub["slot_controlled"].astype(bool)
+    hub["runway_count"] = pd.to_numeric(hub["runway_count"], errors="coerce")
+    hub["enplanements_cy23"] = pd.to_numeric(hub["enplanements_cy23"], errors="coerce")
+    return hub.drop_duplicates(subset=["airport"], keep="first").reset_index(drop=True)
+
+
+def join_hub_profile(
+    delay_df: pd.DataFrame,
+    hub_profile: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Left-join hub size / slot / runway attributes onto delay rows on ``airport``.
+
+    Returns ``(enriched_df, match_report)``.
+    """
+    out = delay_df.copy()
+    out["airport"] = out["airport"].astype("string").str.strip().str.upper()
+
+    keep = [
+        "airport",
+        "hub_size",
+        "hub_code",
+        "enplanements_cy23",
+        "slot_controlled",
+        "runway_count",
+    ]
+    lookup = hub_profile[keep].copy()
+
+    before_rows = len(out)
+    before_airports = int(out["airport"].nunique())
+    delay_airports = set(out["airport"].dropna().unique())
+    matched_airports = set(lookup["airport"])
+    lost = sorted(delay_airports - matched_airports)
+
+    out = out.merge(lookup, how="left", on="airport")
+    matched_rows = int(out["hub_size"].notna().sum())
+
+    report = {
+        "faa_hub_source": FAA_ENPLANEMENTS_CY23_URL,
+        "runway_source": OURAIRPORTS_RUNWAYS_URL,
+        "slot_airports": sorted(SLOT_CONTROLLED_AIRPORTS),
+        "n_airports_in_delay": before_airports,
+        "n_airports_matched": before_airports - len(lost),
+        "n_airports_lost": len(lost),
+        "lost_airport_codes": lost,
+        "n_rows_before": before_rows,
+        "n_rows_matched": matched_rows,
+        "n_rows_unmatched": before_rows - matched_rows,
+        "match_rate_airports": round(
+            100 * (before_airports - len(lost)) / max(before_airports, 1), 2
+        ),
+        "match_rate_rows": round(100 * matched_rows / max(before_rows, 1), 2),
+        "hub_size_counts": out.drop_duplicates("airport")["hub_size"]
+        .value_counts(dropna=False)
+        .to_dict(),
+        "n_slot_controlled_airports": int(
+            out.drop_duplicates("airport")["slot_controlled"].fillna(False).sum()
+        ),
+    }
+    return out, report
+
+
 def missingness_report(df: pd.DataFrame) -> pd.DataFrame:
     """Per-column null counts and percentages."""
     n = len(df)
