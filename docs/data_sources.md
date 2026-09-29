@@ -65,7 +65,32 @@ Plain-language definitions of columns and methods: [`glossary.md`](glossary.md).
 
 ---
 
-### 4. Association-rule binary matrix (derived — not a new download)
+### 4. Airport staffing (static airport join)
+
+| | |
+|---|---|
+| **What** | Current controller staffing, workforce target, training time, training success, and facility level |
+| **Grain** | one row per airport |
+| **Local** | `data/raw/airport_staffing.csv` |
+| **Code** | `src/cleaning.py` → `load_airport_staffing`, `join_airport_staffing` |
+| **Join key** | BTS `airport` |
+| **Notebook** | `notebooks/01_eda_clean_visualize.ipynb` §4c |
+
+| Field | Meaning in this file |
+|---|---|
+| `cur_staff_pct` | Current staff as a percent of target (can exceed 100) |
+| `crwg_target` | Target staffing level (`CRWGTarget`) |
+| `training_time_yrs` | Training time, in years |
+| `training_success_pct` | Training success rate, percent |
+| `facility_level` | Facility complexity level (integer) |
+
+Percents are stored as numbers on a 0–100 scale (`75%` → `75`).
+
+**Match (this extract):** 30/30 delay airports and 8,963/8,963 rows (100%). The staffing file also includes **HNL, RDU, and STL**, which are not in the delay extract, so those three rows do not attach to any delay record.
+
+---
+
+### 5. Association-rule binary matrix (derived — not a new download)
 
 | | |
 |---|---|
@@ -84,7 +109,7 @@ Binary items include discretized delay/cancel rates, cause-dominance flags, seas
 | File | Description |
 |---|---|
 | `data/processed/airline_delay_cause_clean.csv` | Cleaned BTS panel + derived rates |
-| `data/processed/airline_delay_cause_with_airports.csv` | Above + OpenFlights geo + hub/ops fields |
+| `data/processed/airline_delay_cause_with_airports.csv` | Above + OpenFlights geo + hub/ops + staffing fields |
 | `data/processed/association_binary_matrix.csv` | 0/1 item matrix for ARM |
 | `data/processed/association_rules_min_support_0_05.csv` | Exported rules (delay-related filter) |
 

@@ -62,6 +62,11 @@ BTS splits delay into causes. Each has a **count** (`*_ct`, can be fractional) a
 | **`enplanements_cy23`** | FAA count of passengers boarded at the airport in calendar year 2023 (airport size). |
 | **Slot-controlled** | Airports with FAA slot/scheduling limits: **JFK, LGA, EWR, DCA**. Congestion is tightly managed. |
 | **`runway_count`** | Number of **open** runways (OurAirports). |
+| **`cur_staff_pct`** | Current airport staff as a percent of the staffing target. Can be above 100. |
+| **`crwg_target`** | Target staffing level from the staffing file (`CRWGTarget`). |
+| **`training_time_yrs`** | Training time in years. |
+| **`training_success_pct`** | Training success rate, percent. |
+| **`facility_level`** | Facility complexity level (integer; higher is more complex). |
 | **Match rate** | Share of airports/rows that successfully joined to a reference table (report this for integration). |
 
 ---
@@ -122,6 +127,7 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 | `data/raw/Airline_Delay_Cause.csv` | Raw BTS panel |
 | `data/raw/airports.dat` | OpenFlights airports |
 | `data/raw/airport_hub_profile.csv` | Hub size, slots, runways |
+| `data/raw/airport_staffing.csv` | Staffing, training, facility level |
 | `data/processed/airline_delay_cause_with_airports.csv` | Main analysis table |
 | `data/processed/association_binary_matrix.csv` | ARM 0/1 matrix |
 | `reports/figures/` | Saved charts for the report |
