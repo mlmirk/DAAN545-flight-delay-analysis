@@ -75,9 +75,8 @@ Plain-language definitions of columns and methods: [`glossary.md`](glossary.md).
 | **Publisher** | [Federal Aviation Administration (FAA)](https://www.faa.gov/) air traffic controller staffing |
 | **Upstream** | [FAA Air Traffic Controller Workforce Plan](https://www.faa.gov/about/office_org/headquarters_offices/afn/offices/finance/offices/office-financial-labor-analysis/plans/controller-workforce) ([FY2025–2028 PDF](https://www.faa.gov/sites/faa.gov/files/fy25-air-traffic-controller-workforce-plan_0.pdf)); CRWG definition and comparison: [National Academies review of ATC staffing models](https://www.nationalacademies.org/read/29112/chapter/6) |
 | **Format** | CSV with a header. Percents include a `%` sign (`75%`, `85.88%`). Training time is text ending in `yrs` (`1.03 yrs`). The `CurStaff` header has a trailing space in the raw file. |
-| **Code** | `src/cleaning.py` → `load_airport_staffing`, `join_airport_staffing` |
-| **Join key** | BTS `airport` = staffing `Airport` (IATA) |
-| **Notebook** | `notebooks/01_eda_clean_visualize.ipynb` §4c |
+| **Code** | `src/cleaning.py` → `load_airport_staffing` (reads this file only; does not attach it to the delay panel) |
+| **Kept separate** | Not merged into `data/processed/airline_delay_cause_with_airports.csv`. Both files use IATA airport codes if a later analysis joins them. |
 
 | Raw column | Cleaned name | Upstream meaning |
 |---|---|---|
@@ -90,9 +89,7 @@ Plain-language definitions of columns and methods: [`glossary.md`](glossary.md).
 
 **Cleaning summary:** strip header spaces, uppercase IATA codes, drop duplicate airports, turn percents into 0–100 numbers (`75%` → `75`), and turn training time into a number of years (`1.03 yrs` → `1.03`).
 
-**This extract:** 33 airports. All 30 airports in the delay panel are included, plus **HNL, RDU, and STL** (those three have no delay rows to attach to).
-
-**Match (when joined):** 30/30 delay airports and 8,963/8,963 rows (100%). Staffing is repeated on every carrier–month at that airport.
+**This extract:** 33 airports. The delay panel’s 30 airports are all in this file, plus **HNL, RDU, and STL**. The staffing file stays separate from the BTS delay table.
 
 ---
 
@@ -115,7 +112,7 @@ Binary items include discretized delay/cancel rates, cause-dominance flags, seas
 | File | Description |
 |---|---|
 | `data/processed/airline_delay_cause_clean.csv` | Cleaned BTS panel + derived rates |
-| `data/processed/airline_delay_cause_with_airports.csv` | Above + OpenFlights geo + hub/ops + staffing fields |
+| `data/processed/airline_delay_cause_with_airports.csv` | Above + OpenFlights geo + hub/ops fields |
 | `data/processed/association_binary_matrix.csv` | 0/1 item matrix for ARM |
 | `data/processed/association_rules_min_support_0_05.csv` | Exported rules (delay-related filter) |
 

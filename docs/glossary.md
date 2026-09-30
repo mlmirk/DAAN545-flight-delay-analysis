@@ -13,7 +13,7 @@ Related: [`data_sources.md`](data_sources.md) (where data comes from).
 |------|---------|
 | **Grain / row** | One row = one **carrier × airport × year × month** (not individual flights). |
 | **Carrier** | Airline code (e.g. `DL`, `AA`) and name (`carrier_name`). |
-| **Airport / IATA** | Three-letter code (`ATL`, `ORD`). Join key to OpenFlights, the hub profile, and FAA staffing. |
+| **Airport / IATA** | Three-letter code (`ATL`, `ORD`). Join key to OpenFlights and the hub profile. The FAA staffing file uses the same codes but is kept as its own table. |
 | **Period** | First day of the month (`year` + `month`) for time plots. |
 | **Panel / extract** | Our analysis table built from BTS + joins (see `data/processed/`). |
 

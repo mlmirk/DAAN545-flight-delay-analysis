@@ -379,7 +379,9 @@ def _parse_years(series: pd.Series) -> pd.Series:
 
 def load_airport_staffing(csv_path) -> pd.DataFrame:
     """
-    Load the airport staffing CSV and parse percent / year fields.
+    Load the separate airport staffing CSV and parse percent / year fields.
+
+    This does not attach staffing to the BTS delay panel.
 
     Source columns: ``Airport``, ``CurStaff``, ``CRWGTarget``, ``TrainingTime``,
     ``TrainingSuccess``, ``FacilityLevel``. Percents stay on a 0–100 scale
@@ -409,53 +411,6 @@ def load_airport_staffing(csv_path) -> pd.DataFrame:
         .drop_duplicates(subset=["airport"], keep="first")
         .reset_index(drop=True)
     )
-
-
-def join_airport_staffing(
-    delay_df: pd.DataFrame,
-    staffing: pd.DataFrame,
-) -> tuple[pd.DataFrame, dict]:
-    """
-    Left-join staffing attributes onto delay rows on ``airport``.
-
-    Staffing is static (one row per airport), so every carrier-month at a
-    matched airport receives the same values. Returns ``(enriched_df, match_report)``.
-    """
-    out = delay_df.copy()
-    out["airport"] = out["airport"].astype("string").str.strip().str.upper()
-    already = [c for c in STAFFING_VALUE_COLS if c in out.columns]
-    if already:
-        out = out.drop(columns=already)
-
-    lookup = staffing[["airport", *STAFFING_VALUE_COLS]].copy()
-    lookup["airport"] = lookup["airport"].astype("string").str.strip().str.upper()
-
-    before_rows = len(out)
-    before_airports = int(out["airport"].nunique())
-    delay_airports = set(out["airport"].dropna().unique())
-    staffing_airports = set(lookup["airport"].dropna().unique())
-    lost = sorted(delay_airports - staffing_airports)
-    extra = sorted(staffing_airports - delay_airports)
-
-    out = out.merge(lookup, how="left", on="airport")
-    matched_rows = int(out["cur_staff_pct"].notna().sum())
-
-    report = {
-        "n_staffing_airports": int(lookup["airport"].nunique()),
-        "n_airports_in_delay": before_airports,
-        "n_airports_matched": before_airports - len(lost),
-        "n_airports_lost": len(lost),
-        "lost_airport_codes": lost,
-        "extra_staffing_airports": extra,
-        "n_rows_before": before_rows,
-        "n_rows_matched": matched_rows,
-        "n_rows_unmatched": before_rows - matched_rows,
-        "match_rate_airports": round(
-            100 * (before_airports - len(lost)) / max(before_airports, 1), 2
-        ),
-        "match_rate_rows": round(100 * matched_rows / max(before_rows, 1), 2),
-    }
-    return out, report
 
 
 def missingness_report(df: pd.DataFrame) -> pd.DataFrame:
