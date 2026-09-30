@@ -65,28 +65,34 @@ Plain-language definitions of columns and methods: [`glossary.md`](glossary.md).
 
 ---
 
-### 4. Airport staffing (static airport join)
+### 4. FAA airport staffing (static airport file)
 
 | | |
 |---|---|
-| **What** | Current controller staffing, workforce target, training time, training success, and facility level |
-| **Grain** | one row per airport |
-| **Local** | `data/raw/airport_staffing.csv` |
+| **What** | Air traffic controller staffing snapshot: current staff vs. target, training time, training success, and facility level |
+| **Grain** | one row per airport (not monthly; does not vary by carrier or year) |
+| **Local** | `data/raw/airport_staffing.csv` (saved from `Airport Staffing Data.csv`) |
+| **Publisher** | [Federal Aviation Administration (FAA)](https://www.faa.gov/) air traffic controller staffing |
+| **Upstream** | [FAA Air Traffic Controller Workforce Plan](https://www.faa.gov/about/office_org/headquarters_offices/afn/offices/finance/offices/office-financial-labor-analysis/plans/controller-workforce) ([FY2025–2028 PDF](https://www.faa.gov/sites/faa.gov/files/fy25-air-traffic-controller-workforce-plan_0.pdf)); CRWG definition and comparison: [National Academies review of ATC staffing models](https://www.nationalacademies.org/read/29112/chapter/6) |
+| **Format** | CSV with a header. Percents include a `%` sign (`75%`, `85.88%`). Training time is text ending in `yrs` (`1.03 yrs`). The `CurStaff` header has a trailing space in the raw file. |
 | **Code** | `src/cleaning.py` → `load_airport_staffing`, `join_airport_staffing` |
-| **Join key** | BTS `airport` |
+| **Join key** | BTS `airport` = staffing `Airport` (IATA) |
 | **Notebook** | `notebooks/01_eda_clean_visualize.ipynb` §4c |
 
-| Field | Meaning in this file |
-|---|---|
-| `cur_staff_pct` | Current staff as a percent of target (can exceed 100) |
-| `crwg_target` | Target staffing level (`CRWGTarget`) |
-| `training_time_yrs` | Training time, in years |
-| `training_success_pct` | Training success rate, percent |
-| `facility_level` | Facility complexity level (integer) |
+| Raw column | Cleaned name | Upstream meaning |
+|---|---|---|
+| `Airport` | `airport` | IATA code of the ATC facility’s airport |
+| `CurStaff` | `cur_staff_pct` | Controllers currently on board as a **percent of the CRWG target**. Can exceed 100 when the facility is above target. |
+| `CRWGTarget` | `crwg_target` | **Collaborative Resource Workgroup** target: the number of Certified Professional Controllers (CPCs) the FAA/NATCA model says the facility should have. CPCs only — trainees do not count toward this target. |
+| `TrainingTime` | `training_time_yrs` | Time to complete facility training, in years |
+| `TrainingSuccess` | `training_success_pct` | Share of trainees who successfully certify, percent |
+| `FacilityLevel` | `facility_level` | FAA ATC **facility level** (complexity / pay level). Higher number = more traffic and more complex airspace. Terminal facilities are typically 4–12; **12 is the highest**. |
 
-Percents are stored as numbers on a 0–100 scale (`75%` → `75`).
+**Cleaning summary:** strip header spaces, uppercase IATA codes, drop duplicate airports, turn percents into 0–100 numbers (`75%` → `75`), and turn training time into a number of years (`1.03 yrs` → `1.03`).
 
-**Match (this extract):** 30/30 delay airports and 8,963/8,963 rows (100%). The staffing file also includes **HNL, RDU, and STL**, which are not in the delay extract, so those three rows do not attach to any delay record.
+**This extract:** 33 airports. All 30 airports in the delay panel are included, plus **HNL, RDU, and STL** (those three have no delay rows to attach to).
+
+**Match (when joined):** 30/30 delay airports and 8,963/8,963 rows (100%). Staffing is repeated on every carrier–month at that airport.
 
 ---
 

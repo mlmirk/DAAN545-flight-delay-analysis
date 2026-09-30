@@ -13,7 +13,7 @@ Related: [`data_sources.md`](data_sources.md) (where data comes from).
 |------|---------|
 | **Grain / row** | One row = one **carrier × airport × year × month** (not individual flights). |
 | **Carrier** | Airline code (e.g. `DL`, `AA`) and name (`carrier_name`). |
-| **Airport / IATA** | Three-letter code (`ATL`, `ORD`). Join key to OpenFlights and hub profile. |
+| **Airport / IATA** | Three-letter code (`ATL`, `ORD`). Join key to OpenFlights, the hub profile, and FAA staffing. |
 | **Period** | First day of the month (`year` + `month`) for time plots. |
 | **Panel / extract** | Our analysis table built from BTS + joins (see `data/processed/`). |
 
@@ -62,12 +62,23 @@ BTS splits delay into causes. Each has a **count** (`*_ct`, can be fractional) a
 | **`enplanements_cy23`** | FAA count of passengers boarded at the airport in calendar year 2023 (airport size). |
 | **Slot-controlled** | Airports with FAA slot/scheduling limits: **JFK, LGA, EWR, DCA**. Congestion is tightly managed. |
 | **`runway_count`** | Number of **open** runways (OurAirports). |
-| **`cur_staff_pct`** | Current airport staff as a percent of the staffing target. Can be above 100. |
-| **`crwg_target`** | Target staffing level from the staffing file (`CRWGTarget`). |
-| **`training_time_yrs`** | Training time in years. |
-| **`training_success_pct`** | Training success rate, percent. |
-| **`facility_level`** | Facility complexity level (integer; higher is more complex). |
 | **Match rate** | Share of airports/rows that successfully joined to a reference table (report this for integration). |
+
+---
+
+## FAA controller staffing
+
+From `data/raw/airport_staffing.csv`. One static row per airport (see [`data_sources.md`](data_sources.md)). These fields describe the **air traffic control facility**, not the airlines.
+
+| Term / column | Meaning |
+|---------------|---------|
+| **CPC** | **Certified Professional Controller** — a controller fully certified to work the positions at that facility. |
+| **CRWG** | **Collaborative Resource Workgroup.** A joint FAA Air Traffic Organization and NATCA (controllers’ union) model that sets how many CPCs each facility should have. It counts **only CPCs**. Controllers still in training are not included. The FAA’s older staffing standard (AFN) is different: it also counts some previously certified controllers who are retraining (CPC-ITs). |
+| **`crwg_target`** | That CRWG headcount target for the airport’s facility (`CRWGTarget` in the raw file). Example: a target of 52 means the model calls for 52 CPCs at that facility. |
+| **`cur_staff_pct`** | Controllers currently on board as a percent of `crwg_target`. **100** means the facility is at target. **Above 100** means more CPCs than the target (MSP is 106; STL is 147). **Below 100** means short of the target (AUS is about 54). |
+| **`training_time_yrs`** | How long facility training takes, in years. |
+| **`training_success_pct`** | Percent of trainees who successfully finish certification. |
+| **Facility level / `facility_level`** | FAA **ATC facility level**, an integer that ranks how busy and complex the facility is. It is also the controller **pay level**: a higher level pays more because the traffic is heavier and harder to work. Terminal facilities (towers and approach controls) usually run from **4 through 12**. **12 is the most complex** (in this file: ATL, DEN, DFW, ORD, CLT, MIA, PHL). The lowest level in this extract is **7** (STL). |
 
 ---
 
@@ -127,7 +138,7 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 | `data/raw/Airline_Delay_Cause.csv` | Raw BTS panel |
 | `data/raw/airports.dat` | OpenFlights airports |
 | `data/raw/airport_hub_profile.csv` | Hub size, slots, runways |
-| `data/raw/airport_staffing.csv` | Staffing, training, facility level |
+| `data/raw/airport_staffing.csv` | FAA controller staffing (CRWG target, training, facility level) |
 | `data/processed/airline_delay_cause_with_airports.csv` | Main analysis table |
 | `data/processed/association_binary_matrix.csv` | ARM 0/1 matrix |
 | `reports/figures/` | Saved charts for the report |
@@ -142,6 +153,9 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 |---------|-----------|
 | **BTS** | Bureau of Transportation Statistics |
 | **FAA** | Federal Aviation Administration |
+| **CRWG** | Collaborative Resource Workgroup (FAA/NATCA controller staffing targets) |
+| **CPC** | Certified Professional Controller |
+| **NATCA** | National Air Traffic Controllers Association |
 | **IATA** | Airport/airline code standard (3-letter airports) |
 | **NAS** | National Airspace System (delay cause) |
 | **ARM** | Association rule mining |
