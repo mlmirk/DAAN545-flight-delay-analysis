@@ -193,6 +193,8 @@ Data provenance (BTS + OpenFlights airports, cleaning notes): [`docs/data_source
 
 Domain / analysis terms for the writeup: [`docs/glossary.md`](docs/glossary.md).
 
+Draft notebook findings / reproducibility notes (not for submission): [`docs/notebook_notes.md`](docs/notebook_notes.md).
+
 ---
 
 ## Quick glossary
