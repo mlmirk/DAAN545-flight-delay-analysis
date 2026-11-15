@@ -120,6 +120,22 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 
 ---
 
+## Clustering
+
+Used in `notebooks/03_clustering.ipynb`. Longer write-up: [`notebook_notes.md`](notebook_notes.md).
+
+| Term | Meaning |
+|------|---------|
+| **Cluster** | A group of carrier–airport–months with a similar delay profile. |
+| **K-Means** | Splits rows into k groups around centroids. Every row is assigned. |
+| **Ward** | Hierarchical clustering. Merges groups so within-group variance stays small. We cut the tree at the same k as K-Means. |
+| **Silhouette** | How well a row sits in its own cluster versus the next closest one. Higher is tighter. We pick k from the K-Means silhouette. Around 0.25 on this data means the groups overlap. |
+| **Adjusted Rand index** | How much two labelings agree, adjusted for chance. 1 = same groups. Our K-Means vs Ward value is about 0.60. |
+| **PCA** | Compresses scaled features into fewer components. We plot the first two. We only cluster in that plane if they explain at least 70% of the variance. Here they explain about 53%, so clustering stays in the original scaled features. |
+| **Cause share** | That cause’s delay minutes ÷ `arr_delay`. Used as cluster features. |
+
+---
+
 ## Plot & report language
 
 | Phrase on figures | Meaning |
@@ -144,6 +160,8 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 | `reports/figures/` | Saved charts for the report |
 | `notebooks/01_eda_clean_visualize.ipynb` | Cleaning, joins, EDA plots |
 | `notebooks/02_association_rules.ipynb` | Binary encoding + rules |
+| `notebooks/03_clustering.ipynb` | K-Means and Ward clustering |
+| `docs/notebook_notes.md` | Write-up notes for clustering |
 
 ---
 
@@ -162,3 +180,4 @@ Used in `notebooks/02_association_rules.ipynb` with **mlxtend**.
 | **EDA** | Exploratory data analysis |
 | **IQR** | Interquartile range |
 | **CY** | Calendar year (e.g. CY2023) |
+| **PCA** | Principal component analysis |

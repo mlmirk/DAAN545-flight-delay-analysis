@@ -107,6 +107,22 @@ Binary items include discretized delay/cancel rates, cause-dominance flags, seas
 
 ---
 
+### 6. Cluster assignments (derived — not a new download)
+
+| | |
+|---|---|
+| **What** | K-Means and Ward labels for carrier–airport–months, plus the k sweep and cluster means |
+| **Built from** | `data/processed/airline_delay_cause_with_airports.csv` |
+| **Local exports** | `data/processed/cluster_assignments.csv`, `cluster_k_sweep.csv`, `cluster_profiles.csv`, `cluster_method_crosstab.csv` |
+| **Code** | `src/clustering.py` → `run_clustering` |
+| **Notebook** | `notebooks/03_clustering.ipynb` |
+| **Notes** | `docs/notebook_notes.md` |
+| **Figures** | `reports/figures/13_cluster_silhouette_vs_k.png` through `16_cluster_profile_heatmap.png` |
+
+Months with fewer than 32 arrivals (10th percentile of `arr_flights`) are left out. Staffing is not an input. Write-up of k, PCA, and the cluster profiles is in the notes file, not repeated here.
+
+---
+
 ## Processed outputs (what analysis reads)
 
 | File | Description |
@@ -115,6 +131,9 @@ Binary items include discretized delay/cancel rates, cause-dominance flags, seas
 | `data/processed/airline_delay_cause_with_airports.csv` | Above + OpenFlights geo + hub/ops fields |
 | `data/processed/association_binary_matrix.csv` | 0/1 item matrix for ARM |
 | `data/processed/association_rules_min_support_0_05.csv` | Exported rules (delay-related filter) |
+| `data/processed/cluster_assignments.csv` | K-Means and Ward cluster ids |
+| `data/processed/cluster_k_sweep.csv` | Silhouette and inertia for k = 2…8 |
+| `data/processed/cluster_profiles.csv` | Mean delay profile by cluster |
 
 ---
 

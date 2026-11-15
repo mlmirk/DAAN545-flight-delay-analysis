@@ -174,3 +174,161 @@ for _, row in sweep.iterrows():
 - [ ] Figures: `reports/figures/09_arm_minsupport_sweep.png`
 - [ ] Exports: `association_binary_matrix.csv`, `association_rules_min_support_0_05.csv`
 - [ ] Writeup covers binary encoding, both miners, rules, and min_support sensitivity
+
+---
+
+## Clustering (`03_clustering.ipynb`)
+
+Numbers below come from running `src/clustering.py` on `data/processed/airline_delay_cause_with_airports.csv`. Re-run `notebooks/03_clustering.ipynb` to reproduce the tables and figures. FAA staffing is not a clustering feature.
+
+## What we clustered
+
+Each row is still one carrier–airport–month. We clustered the **shape of the month**, not raw flight counts, so a big hub does not land in its own cluster just for being big.
+
+Features, after `StandardScaler`:
+
+- `pct_delayed`, `pct_cancelled`
+- share of delay minutes: carrier, weather, NAS, late aircraft
+
+Months with `arr_flights` below the 10th percentile are left out. That cutoff is **32 arrivals**. A month with only a handful of flights can swing from 0% to 100% delayed off one flight, so it is a weak cluster member. That drops 894 rows. **8,069** months remain (from 8,963).
+
+Security’s share of delay minutes has standard deviation **0.011**, so it barely moves. We left it out of the feature list. Months with no delay minutes get cause shares of 0.
+
+Airport, season, and slot status are **not** inputs. We look at them after the clusters are formed.
+
+---
+
+## Why these two algorithms
+
+We wanted a small set of delay regimes, then a second method on the **same scaled matrix** so differences come from the algorithm.
+
+- **K-Means** puts every month into one group and is the usual first cut for numeric profiles.
+- **Ward hierarchical** also uses Euclidean distance after scaling, but it builds groups by merging. Same k lets us compare partitions the way notebook 02 compared apriori and FP-Growth at the same support.
+
+We did not cluster the 30 airports by themselves. That sample is too small for a stable k, and the EDA already ranks airports by delay rate.
+
+---
+
+## Parameter choices
+
+`k` runs from 2 to 8. We take the k with the highest K-Means silhouette (`n_init=10`, `random_state=42`). Ward is cut at that same k.
+
+| k | K-Means inertia | K-Means silhouette | Ward silhouette |
+|---|-----------------|--------------------|-----------------|
+| 2 | 39,676 | 0.225 | **0.236** |
+| 3 | 32,574 | 0.236 | 0.197 |
+| 4 | 28,108 | 0.248 | 0.216 |
+| **5** | 24,494 | **0.255** | 0.213 |
+| 6 | 22,040 | 0.217 | 0.177 |
+| 7 | 20,669 | 0.196 | 0.181 |
+| 8 | 19,577 | 0.186 | 0.133 |
+
+**Chosen k = 5.** Inertia falls smoothly, so there is no sharp elbow. Silhouette peaks at 5 and is only a little higher than at 4 (0.248). Separation is modest either way: 0.255 is not a tight grouping. Months overlap.
+
+Ward’s own silhouette is best at **k = 2** (0.236), not at 5 (0.213). If each method picked its own k, Ward would stop at a coarser split. We still cut Ward at 5 so the comparison is about membership, not about a different number of groups.
+
+Figure: `reports/figures/13_cluster_silhouette_vs_k.png`.
+
+---
+
+## PCA
+
+PCA is fit on the same scaled features. Share of variance:
+
+| PC1 | PC2 | PC3 | PC4 | PC5 | PC6 |
+|-----|-----|-----|-----|-----|-----|
+| 28.9% | 24.2% | 19.4% | 15.7% | 11.8% | ~0% |
+
+The first two components explain **53%**. Our rule was to cluster in PC1–PC2 only if they explained at least 70%. They do not, so **clustering stays in the 6-feature scaled space**. The last component is almost zero because the cause shares add up to about 1. One share is basically determined by the others.
+
+The scatters (`14_kmeans_pca_scatter.png`, `15_ward_pca_scatter.png`) are a flattened view. The middle of the cloud mixes colors. That matches the silhouette: groups are real enough to profile, but they are not separated blobs in two dimensions.
+
+---
+
+## What the clusters mean
+
+Means below are inside the cluster. “Slot %” is the share of rows at JFK, LGA, EWR, or DCA. In the full clustered set that share is **12.7%**. IQR outlier % is the share of rows flagged on `pct_delayed` (overall **1.4%**). We still do not delete those rows.
+
+### K-Means
+
+| Cluster | Rows | Delayed 15+ | Cancelled | Main cause share | Slot % | IQR outlier % | Often |
+|---------|------|-------------|-----------|------------------|--------|---------------|-------|
+| 0 | 3,616 (45%) | 22.7% | 1.1% | late aircraft 0.49 | 6.5 | 0.5 | DTW, CLT, IAD |
+| 1 | 1,737 (22%) | 25.2% | 1.3% | NAS 0.46 | 24.1 | 3.0 | EWR, SFO, DCA |
+| 2 | 1,454 (18%) | 18.1% | 0.9% | carrier 0.56 | 8.5 | 0.2 | PHX, LAX, BNA |
+| 3 | 846 (10%) | 28.9% | 7.2% | late aircraft 0.40, NAS 0.25 | 26.1 | 4.4 | LGA, DCA, EWR; winter 41% |
+| 4 | 416 (5%) | 20.9% | 2.0% | weather 0.26, carrier 0.39 | 7.7 | 0.2 | DFW, ATL, MSP |
+
+Plain reading:
+
+- **Cluster 0** is the common month. Late aircraft is about half of delay minutes. Delay rate is near the middle of the set. This is the cascade pattern already dominant in the EDA minute shares (late aircraft was 38.7% of all delay minutes).
+- **Cluster 1** is NAS-heavy. Delay rate is a bit higher. Slot airports and SFO show up more than in the common month (24% vs 12.7% base).
+- **Cluster 2** is carrier-heavy and has the **lowest** delay rate. A carrier-cause month is not the same thing as a bad month.
+- **Cluster 3** is the disruption month: highest delay rate and cancellations around 7%, versus about 1% elsewhere. Winter is the most common season (41%). Slot airports are 26% of the rows. IQR delay-rate outliers are more common here (4.4%) than in the common month (0.5%).
+- **Cluster 4** is small. Weather’s share of minutes jumps to 0.26, against about 0.03–0.05 in the other groups. The delay rate is not the worst. Weather-heavy does not mean the highest percent delayed.
+
+### Ward at the same k
+
+| Cluster | Rows | Delayed 15+ | Cancelled | Main cause share | Slot % | Lines up with K-Means |
+|---------|------|-------------|-----------|------------------|--------|------------------------|
+| 0 | 4,345 (54%) | 23.6% | 1.4% | late aircraft 0.47 | 8.5 | mostly K-Means 0 |
+| 1 | 540 (7%) | 19.6% | 1.6% | carrier 0.48, weather 0.22 | 8.5 | mostly K-Means 4 |
+| 2 | 1,573 (19%) | 23.7% | 1.5% | NAS 0.47 | 24.8 | mostly K-Means 1 |
+| 3 | 393 (5%) | 27.6% | 9.1% | late aircraft 0.38 | 32.1 | the core of K-Means 3; winter 46% |
+| 4 | 1,218 (15%) | 19.8% | 1.4% | carrier 0.56 | 8.0 | mostly K-Means 2 |
+
+Figure: `reports/figures/16_cluster_profile_heatmap.png`.
+
+---
+
+## How the two methods compare
+
+Adjusted Rand index is **0.60**. That is agreement well above chance, not a copy of the same labels.
+
+Crosstab (rows = K-Means, columns = Ward):
+
+|  | Ward 0 | Ward 1 | Ward 2 | Ward 3 | Ward 4 |
+|--|--------|--------|--------|--------|--------|
+| K-Means 0 | 3,475 | 2 | 61 | 0 | 78 |
+| K-Means 1 | 319 | 7 | 1,360 | 7 | 44 |
+| K-Means 2 | 201 | 177 | 67 | 0 | 1,009 |
+| K-Means 3 | 284 | 8 | 84 | 384 | 86 |
+| K-Means 4 | 66 | 346 | 1 | 2 | 1 |
+
+Same story, different edges:
+
+- Both find a large late-aircraft group, a NAS group, a carrier group, a high-cancel group, and a smaller weather-leaning group.
+- Ward’s cancel group is tighter (393 rows, 9.1% cancelled) than K-Means (846 rows, 7.2%). K-Means pulls some milder months into that group; 284 of its cancel-cluster rows sit in Ward’s big late-aircraft group.
+- Ward’s weather-leaning group also carries a high carrier share (0.48). K-Means keeps weather (0.26) a bit cleaner.
+- The main discrepancy on **k** is above: Ward’s silhouette prefers 2 groups. The five-group cut is a K-Means choice that Ward only partly supports.
+
+---
+
+## What this is useful for
+
+- Most carrier-months look like **late-aircraft** delay. That is a turnaround and schedule problem, not a one-day storm story.
+- **NAS-heavy** months are the ones where airport and airspace ops matter more. They show up more often at EWR, SFO, and the New York / DC slot airports, but those airports are still a minority of the cluster.
+- **Cancellation spikes** are their own pattern. They are more winter and more often at LGA, DCA, and EWR. Planning for a bad delay rate is not the same as planning for a cancellation day.
+- **Carrier-dominant** months have lower delay rates. Chasing carrier-cause share by itself will not point at the worst months.
+- Weather’s share can be high without the month having the worst delay rate. A weather join would still help, but this extract already separates “weather is a large slice of minutes” from “the month was heavily delayed or cancelled.”
+
+---
+
+## Outliers
+
+IQR flags stay flags. They are not removed before clustering.
+
+On `pct_delayed`, we recompute the same 1.5-IQR rule on the months that entered clustering. Flagged rows are **1.4%** of those months. They pile up in the high-cancel group (K-Means 4.4%, Ward 4.1%) and the NAS group (K-Means 3.0%, Ward 2.3%). The carrier and weather groups are almost free of them (about 0.2%). The heavy tail from notebook 01 shows up here as the disruption months, which is why we did not drop those rows first. Dropping them would have shrunk the cancel cluster on purpose.
+
+We did not add a second outlier algorithm. The IQR rule is already the project’s outlier method. Clustering shows where those flags land.
+
+---
+
+## Limits
+
+- A month is a coarse bucket. One storm day and a calm rest of the month land in the same row.
+- Months under 32 arrivals are out. Small-carrier months are under-represented.
+- Silhouette around 0.25 means these are tendencies, not crisp types. Do not treat a cluster id as a hard label in the report without the profile table.
+- Cause shares compete. If late aircraft goes up, something else goes down.
+- k = 5 is the K-Means peak, and k = 4 is close. Say that when defending the choice.
+- FAA staffing is still a separate file. It was not used here.

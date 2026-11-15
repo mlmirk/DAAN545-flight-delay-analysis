@@ -1,6 +1,7 @@
 """Public helpers for the DAAN545 flight-delay analysis project."""
 
 from .association_rules import build_transaction_matrix
+from .clustering import run_clustering
 from .cleaning import (
     CAUSE_COUNT_COLS,
     CAUSE_DELAY_COLS,
@@ -51,5 +52,6 @@ __all__ = [
     "outlier_summary",
     "parse_state_from_airport_name",
     "quality_overview",
+    "run_clustering",
     "summarize_numeric",
 ]
