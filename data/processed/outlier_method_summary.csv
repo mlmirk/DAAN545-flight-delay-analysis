@@ -1,0 +1,5 @@
+method,n_outliers,outlier_pct,rule
+iqr_rates,713,8.84,"pct_delayed outside [-0.52, 45.31] or pct_cancelled outside [-3.09, 5.64]"
+knn_distance,436,5.4,mean distance to 15 nearest neighbors > 1.189 (upper Tukey fence of that score)
+isolation_forest,404,5.01,"decision_function < 0 (contamination=0.05, 200 trees, random_state=42)"
+consensus_at_least_two,365,4.52,"flagged by at least two of iqr_rates, knn_distance, isolation_forest"

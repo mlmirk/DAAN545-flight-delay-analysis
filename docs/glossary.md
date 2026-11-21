@@ -136,6 +136,23 @@ Used in `notebooks/03_clustering.ipynb`. Longer write-up: [`notebook_notes.md`](
 
 ---
 
+## Outlier detection
+
+Used in `notebooks/04_outlier_detection.ipynb`. Longer write-up: [`notebook_notes.md`](notebook_notes.md). Same months and same six profile features as clustering. We **flag**. We do not delete.
+
+| Term | Meaning |
+|------|---------|
+| **Outlier (this project)** | A carrier–airport–month whose delay rate is extreme, or whose scaled delay profile is isolated from other months, or both. A bad month that looks like many other bad months is not automatically an outlier. |
+| **IQR rates** | Tukey fence on `pct_delayed` or on `pct_cancelled` (Q1 − 1.5×IQR, Q3 + 1.5×IQR), computed on the scored months. On this extract both lower fences are below 0, so only the upper tail is flagged. |
+| **k-NN distance** | Mean Euclidean distance to the 15 nearest other months in the scaled profile. Flagged when that distance is above its own upper Tukey fence. |
+| **Isolation forest** | Tree model that isolates unusual rows. We flag `decision_function` < 0 with `contamination=0.05` (about 5% of months) and `random_state=42`. |
+| **Consensus outlier** | Flagged by at least two of the three methods. |
+| **Rate only** | IQR flag, and neither distance method. Usually a high cancellation rate with an ordinary cause mix. |
+| **Shape only** | k-NN or the forest, and not IQR. Usually an unusual cause mix (often weather-heavy) at an ordinary delay rate. |
+| **Rate and shape** | IQR and at least one distance method. High rates and an isolated profile together. |
+
+---
+
 ## Plot & report language
 
 | Phrase on figures | Meaning |
@@ -161,7 +178,9 @@ Used in `notebooks/03_clustering.ipynb`. Longer write-up: [`notebook_notes.md`](
 | `notebooks/01_eda_clean_visualize.ipynb` | Cleaning, joins, EDA plots |
 | `notebooks/02_association_rules.ipynb` | Binary encoding + rules |
 | `notebooks/03_clustering.ipynb` | K-Means and Ward clustering |
-| `docs/notebook_notes.md` | Write-up notes for clustering |
+| `notebooks/04_outlier_detection.ipynb` | IQR, k-NN, and isolation forest flags |
+| `data/processed/outlier_scores.csv` | Per-month outlier scores and flags |
+| `docs/notebook_notes.md` | Write-up notes (not submitted as the notebook) |
 
 ---
 

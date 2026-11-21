@@ -320,7 +320,7 @@ IQR flags stay flags. They are not removed before clustering.
 
 On `pct_delayed`, we recompute the same 1.5-IQR rule on the months that entered clustering. Flagged rows are **1.4%** of those months. They pile up in the high-cancel group (K-Means 4.4%, Ward 4.1%) and the NAS group (K-Means 3.0%, Ward 2.3%). The carrier and weather groups are almost free of them (about 0.2%). The heavy tail from notebook 01 shows up here as the disruption months, which is why we did not drop those rows first. Dropping them would have shrunk the cancel cluster on purpose.
 
-We did not add a second outlier algorithm. The IQR rule is already the project’s outlier method. Clustering shows where those flags land.
+Notebook 03 does not add a second outlier algorithm, and it does not drop these flags before clustering. The comparison with k-NN distance and an isolation forest is in `notebooks/04_outlier_detection.ipynb` and in the outlier section below.
 
 ---
 
@@ -332,3 +332,165 @@ We did not add a second outlier algorithm. The IQR rule is already the project�
 - Cause shares compete. If late aircraft goes up, something else goes down.
 - k = 5 is the K-Means peak, and k = 4 is close. Say that when defending the choice.
 - FAA staffing is still a separate file. It was not used here.
+
+### Reproducibility
+
+- [ ] `pip install -r requirements.txt` (includes `scikit-learn`)
+- [ ] Enriched panel present: `data/processed/airline_delay_cause_with_airports.csv`
+- [ ] Run `notebooks/03_clustering.ipynb` top-to-bottom
+- [ ] Figures: `reports/figures/13_` through `16_`
+- [ ] Exports: `cluster_assignments.csv`, `cluster_k_sweep.csv`, `cluster_profiles.csv`, `cluster_method_crosstab.csv`
+
+---
+
+## Outlier detection (`04_outlier_detection.ipynb`)
+
+Numbers below come from `src/outliers.py` on the same enriched panel. Re-run `notebooks/04_outlier_detection.ipynb` to reproduce the tables and figures. FAA staffing is not a feature.
+
+## What we call an outlier
+
+An outlier is a carrier–airport–month whose delay profile is unusual relative to the other months in this extract. A merely bad month is not an outlier if many other months look like it. We flag rows. We do not delete them.
+
+The scored population is the clustering population: `arr_flights` at or above the 10th percentile (**32** arrivals). That drops 894 rows. **8,069** months remain (from 8,963). Tiny months can swing from 0% to 100% delayed off one flight, and they would dominate a distance score.
+
+Features match clustering. k-NN and the isolation forest see them after `StandardScaler`:
+
+- `pct_delayed`, `pct_cancelled`
+- share of delay minutes: carrier, weather, NAS, late aircraft
+
+Security’s share stays out (standard deviation **0.011**). IQR fences are computed on the raw rates, not on the scaled columns. Airport, season, and slot status are not inputs. We read them after the flags are set.
+
+Three rules:
+
+1. **IQR rates (statistical threshold).** A month is flagged when `pct_delayed` or `pct_cancelled` falls outside the Tukey fence, Q1 − 1.5×IQR to Q3 + 1.5×IQR, on this population.
+2. **k-NN distance.** Score = mean Euclidean distance to the **15** nearest other months in the scaled space. A month is flagged when that score is above the upper Tukey fence of the scores. Only the high side counts. A small distance means the month has neighbors.
+3. **Isolation forest.** 200 trees, `contamination=0.05`, `random_state=42`. A month is flagged when `decision_function` < 0. The contamination setting is what holds the flag rate near 5%.
+
+**Consensus** means at least two of the three rules flag the month. That is the set to quote if the report wants one list. The single-method flags are still worth describing, because they are different kinds of unusual.
+
+| Method | Rule on this run | Flagged |
+|---|---|---|
+| IQR rates | `pct_delayed` outside [−0.52, **45.31**] or `pct_cancelled` outside [−3.09, **5.64**] | **713** (8.84%) |
+| k-NN, k=15 | mean distance > **1.189** | **436** (5.40%) |
+| Isolation forest | `decision_function` < 0 at contamination 0.05 | **404** (5.01%) |
+| Consensus (2+) | at least two of the three | **365** (4.52%) |
+
+Both lower fences sit below 0, and neither rate can be negative, so the IQR rule is an **upper-tail** rule here. Of the 713 IQR flags, **111** fail the delay fence, **621** fail the cancel fence, and **19** fail both. The delay-only piece is the same 1.4% the clustering notes already use (`111 / 8,069`). Most of the IQR union is the cancellation tail, which is long because a typical month is near 1% cancelled (inlier mean **1.23%**) while the upper fence is only **5.64%**.
+
+`contamination='auto'` would have flagged **1,271** months (**15.75%**). That is a wide band of somewhat unusual profiles, not a tail. We set 0.05 so the forest marks a share close to the k-NN tail (~5.4%) and the comparison is about *which* months, not about a much larger net.
+
+k changes the neighborhood, not the story. The same upper-fence rule at other k:
+
+| k | Upper fence | Flagged | Jaccard with k=15 |
+|---|-------------|---------|-------------------|
+| 5 | 0.961 | 433 (5.37%) | 0.803 |
+| **15** | **1.189** | **436 (5.40%)** | 1.000 |
+| 30 | 1.379 | 435 (5.39%) | 0.910 |
+
+---
+
+## How the three flags overlap
+
+| Pair | Both | Either | Jaccard |
+|---|------|--------|---------|
+| IQR and k-NN | 236 | 913 | 0.258 |
+| IQR and isolation forest | 166 | 951 | 0.175 |
+| k-NN and isolation forest | 269 | 571 | **0.471** |
+
+All three agree on **153** months. Any method flags **1,035** months. The other **7,034** (87.2%) are inliers on every rule.
+
+| Pattern | Rows | What it means |
+|---|---|---|
+| inlier | 7,034 | none of the three |
+| rate only | 464 | IQR, and neither distance method |
+| shape only | 322 | k-NN or the forest, and not IQR |
+| rate and shape | 249 | IQR and at least one distance method |
+
+k-NN and the forest agree with each other much more than either agrees with IQR. That is the result to explain, not a failure of one method. IQR asks whether a **rate** is in the tail. The other two ask whether the **profile** is isolated. A system-wide cancellation month fails the first test and often passes the second, because many rows share that shape, so none of them is a lonely neighbor.
+
+Figures: `reports/figures/17_outlier_pca_scatter.png` (patterns on PC1–PC2, **53%** of scaled variance — a view, not the space the distance methods used), `18_outlier_score_thresholds.png`, `19_outlier_profile_heatmap.png`, `20_outlier_counts_by_month.png`.
+
+---
+
+## What the groups look like
+
+Means are inside the group. “Slot %” is the share of rows at JFK, LGA, EWR, or DCA. Inliers are **11.1%** slot. Median `arr_flights` for inliers is **570**.
+
+| Group | Rows | Median flights | Delayed 15+ | Cancelled | Carrier | Weather | NAS | Late aircraft | Slot % | Winter % |
+|---|---|---|---|---|---|---|---|---|---|---|
+| inlier | 7,034 | 570 | 22.4% | 1.2% | 0.33 | 0.04 | 0.24 | 0.38 | 11.1 | 22.0 |
+| rate only | 464 | 456 | 28.2% | 7.0% | 0.31 | 0.05 | 0.25 | 0.39 | 25.9 | 46.8 |
+| shape only | 322 | 101 | 20.9% | 1.5% | 0.40 | 0.19 | 0.25 | 0.16 | 13.7 | 24.5 |
+| rate and shape | 249 | 175 | 32.1% | 8.5% | 0.28 | 0.09 | 0.33 | 0.29 | 32.9 | 32.9 |
+| consensus (2+) | 365 | 132 | 28.2% | 6.4% | 0.28 | 0.15 | 0.31 | 0.26 | 26.0 | 30.7 |
+
+### Rate only — extreme cancellations, ordinary cause mix
+
+The cause shares sit on top of the inlier mix. Late aircraft is still about 0.39. What moves is the cancellation rate (7.0% vs 1.2%) and, less so, the delay rate (28.2% vs 22.4%). Winter is **46.8%** of the group, against 22% of inliers. Summer is also heavy (36.6% vs 27.7%). Slot airports are 25.9% of the rows.
+
+These months are extreme and **not isolated**. Other months in the same bad stretch look like them, so k-NN and the forest leave many of them alone.
+
+The calendar makes that concrete (`20_outlier_counts_by_month.png`):
+
+- **January 2026:** 132 of 314 scored months fail the IQR rule, across **18 carriers and 27 airports**. k-NN flags 50 of that month, the forest 32, consensus 47. Median cancellation among the January IQR rows is about **8.4%**, with a delay rate near 23%. That is a system month, not one carrier’s file.
+- **February 2026:** 80 IQR flags.
+- **July 2024:** 70 of 335. **July 2025:** 64 of 334.
+
+The 111 delay-fence months (upper fence 45.31%) are the sharper delay tail inside this rule: mean delay about **51%**, NAS share about **0.39**, carrier share about **0.25**. They concentrate at SFO, EWR, and ORD, and in summer more than winter. Southwest at SFO in June 2026 is the top of that tail: **74.9%** of 954 arrivals delayed, NAS share 0.49, cancellations under 1%. IQR and k-NN flag it. The forest does not (`decision_function` about +0.02). A high NAS month at SFO is less isolated than the rows the forest spends its 5% on.
+
+### Shape only — unusual cause mix, ordinary rates
+
+Mean delay **20.9%** and cancellations **1.5%** are close to the inliers. Weather’s share of delay minutes is **0.19** vs **0.04**. Late aircraft falls to **0.16** vs **0.38**. Median size is **101** arrivals, against 570 for inliers. Slot share is about the same as the inliers (13.7% vs 11.1%). Season mix is flat.
+
+The farthest k-NN point is Allegiant (G4) at BOS in June 2024: **69** arrivals, **4** delays, delay rate **5.8%**, and **317 of 350** delay minutes coded weather (share **0.91**). June 2026 at the same carrier and airport repeats it (67 arrivals, weather share **0.85**). Both are k-NN and forest flags, not IQR flags. Allegiant at EWR in September 2025 is the other kind of isolated point: **37** arrivals and **zero** delay minutes, so every cause share is 0 (k-NN score **3.71**).
+
+On a thin schedule, a few weather-delayed flights become almost the whole cause mix. The month is real. The share is also a small denominator. Twelve months in the scored set have a weather share above 0.50, and the k-NN rule flags all twelve.
+
+### Rate and shape — the consensus core
+
+These 249 months are high on both tests. Mean delay **32.1%**, cancellations **8.5%**, NAS share **0.33**, weather share **0.09**. Slot airports are **32.9%** of the rows. Median size is 175 arrivals, still well under the inlier median.
+
+Examples from the extreme-score table:
+
+- Endeavor (9E) at EWR, May 2025: **67.8%** delayed, **14.9%** cancelled, NAS share **0.69**. All three methods.
+- Envoy (MQ) at EWR, May 2025: **21.9%** cancelled, NAS share **0.79**, carrier share **0.02**. All three methods. Spirit (NK) and Republic (YX) at EWR the same month are also at the bottom of the forest score, with NAS shares 0.89 and 0.83.
+- SkyWest (OO) at LGA, March 2026: **22.7%** cancelled on 44 arrivals. All three methods.
+- Southwest at SFO, May 2026: **67.0%** delayed on 858 arrivals, NAS share **0.61**. All three methods.
+
+May 2025 at EWR shows up as several carriers at once, which looks like an airport month rather than a single reporting glitch. The consensus list as a whole (365 months) has median **132** flights, delay **28.2%**, cancellations **6.4%**, weather share **0.15**, and slot share **26%**.
+
+Carriers split with the pattern. The IQR union is heavy on regional and lower-cost flying at the slot airports (OH, NK, B6, YX, 9E in the raw counts). Shape flags pick up thinner schedules (OO, G4) where one cause can take the minutes. That is schedule size and cause mix, not a label for one airline.
+
+---
+
+## What might cause these rows
+
+**Data entry.** On the 8,069 scored months the logical checks find no negative counts, no delay or cancellation count above arrivals, and no bad month numbers. Cause-count mismatches: **6** rows. Cause-minute mismatches beyond a 1-minute tolerance: **29** rows (0.36%). Only **one** of those 29 is also an outlier: Southwest at DTW in June 2026, **8,588** arrival-delay minutes against **8,083** minutes summed across causes, delay rate **45.5%** (just over the 45.31 fence). IQR flags it. k-NN and the forest do not. The gap is a reporting inconsistency. It does not explain the other thousand flags. We still do not drop the row.
+
+**Rare but valid operations.** January 2026 and the two Julys are many carriers at many airports in the same month. In a monthly extract, that is what a system disruption looks like: winter cancellations, summer delay rates, and a larger share of slot-airport rows. The clustering write-up already put IQR delay-rate flags into the high-cancel and NAS clusters. This screen shows the same months without using the cluster labels as inputs.
+
+The shape-only rows are the other valid tail. A month can be ordinary on both rates and still be almost entirely weather minutes, because only a few flights were delayed. That matches the clustering note that a high weather share is not the same thing as a high delay rate. It is also why a distance method is worth running next to a rate fence.
+
+**Fraudulent activity.** This file is BTS on-time reporting, not payments or identities. There is no transaction here to call fraudulent in the usual sense. Airlines do have a reason to code a delay as NAS or weather rather than carrier, because carrier-cause delay is the piece the DOT rankings emphasize. The delay-fence tail does show a higher NAS share (about 0.39 vs about 0.25) and a lower carrier share. That is also what a bad airspace month looks like at SFO, EWR, and ORD, and the same months hit many carriers at once. A monthly total cannot separate a coding incentive from a real NAS day. We would not call these rows fraud. A check aimed at cause-code shifting would need day-level codes, a carrier’s own baseline, and a rule for “the code moved and the operation did not.” This screen does not do that.
+
+---
+
+## Limits
+
+- A month mixes a storm day with the calm days around it. Both the rate fence and the cause shares are diluted the same way.
+- Months under 32 arrivals are out. The shape-only group is still the thinner part of what remains (median about 100 arrivals). Small denominators inflate cause shares.
+- Cause shares compete. A weather share of 0.91 forces the other shares down.
+- The cancellation IQR flags 621 months (7.7%). That is a long operational tail, not a handful of impossible values. Say so if the report quotes the 8.8% union.
+- The forest’s 5% is a chosen budget. `contamination='auto'` is much wider. k=15 is stable against k=5 and k=30, but it is still a choice.
+- PC1–PC2 explain 53%. The scatter will show overlap even when the six-feature score says isolated.
+- FAA staffing is still a separate file. It was not used here.
+
+### Reproducibility
+
+- [ ] `pip install -r requirements.txt` (includes `scikit-learn`)
+- [ ] Enriched panel present: `data/processed/airline_delay_cause_with_airports.csv`
+- [ ] Run `notebooks/04_outlier_detection.ipynb` top-to-bottom
+- [ ] Figures: `reports/figures/17_` through `20_`
+- [ ] Exports: `outlier_scores.csv`, `outlier_method_summary.csv`, `outlier_agreement.csv`, `outlier_profiles.csv`, `outlier_knn_sweep.csv`, `outlier_monthly_counts.csv`, `outlier_examples.csv`
+- [ ] Write-up keeps the three rules separate from the consensus list, and treats flags as flags
+

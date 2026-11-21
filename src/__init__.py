@@ -2,6 +2,7 @@
 
 from .association_rules import build_transaction_matrix
 from .clustering import run_clustering
+from .outliers import run_outlier_detection
 from .cleaning import (
     CAUSE_COUNT_COLS,
     CAUSE_DELAY_COLS,
@@ -53,5 +54,6 @@ __all__ = [
     "parse_state_from_airport_name",
     "quality_overview",
     "run_clustering",
+    "run_outlier_detection",
     "summarize_numeric",
 ]

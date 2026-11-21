@@ -1,0 +1,9 @@
+group,n_rows,share_of_rows_pct,median_arr_flights,mean_pct_delayed,mean_pct_cancelled,mean_share_carrier,mean_share_weather,mean_share_nas,mean_share_late_aircraft,slot_pct,winter_pct,summer_pct
+inlier,7034,87.17,570.0,22.41,1.23,0.334,0.043,0.243,0.379,11.1,22.0,27.7
+iqr_rates,713,8.84,358.0,29.56,7.53,0.299,0.061,0.28,0.359,28.3,41.9,35.9
+knn_distance,436,5.4,122.0,26.88,5.66,0.28,0.158,0.299,0.257,23.4,30.0,33.3
+isolation_forest,404,5.01,127.0,25.39,4.46,0.373,0.152,0.287,0.182,24.0,26.5,28.7
+consensus_at_least_two,365,4.52,132.0,28.22,6.4,0.28,0.148,0.31,0.256,26.0,30.7,32.6
+rate_only,464,5.75,456.0,28.2,6.99,0.308,0.045,0.25,0.394,25.9,46.8,36.6
+shape_only,322,3.99,100.5,20.85,1.54,0.4,0.188,0.248,0.156,13.7,24.5,27.6
+rate_and_shape,249,3.09,175.0,32.1,8.52,0.281,0.091,0.334,0.292,32.9,32.9,34.5

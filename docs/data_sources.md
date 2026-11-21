@@ -123,6 +123,23 @@ Months with fewer than 32 arrivals (10th percentile of `arr_flights`) are left o
 
 ---
 
+### 7. Outlier scores (derived — not a new download)
+
+| | |
+|---|---|
+| **What** | IQR, k-NN, and isolation-forest flags for carrier–airport–months, plus agreement, profiles, and extreme examples |
+| **Built from** | `data/processed/airline_delay_cause_with_airports.csv` |
+| **Population** | Same months as clustering: `arr_flights` at or above the 10th percentile (32). **8,069** rows. |
+| **Local exports** | `data/processed/outlier_scores.csv`, `outlier_method_summary.csv`, `outlier_agreement.csv`, `outlier_profiles.csv`, `outlier_knn_sweep.csv`, `outlier_monthly_counts.csv`, `outlier_examples.csv` |
+| **Code** | `src/outliers.py` → `run_outlier_detection` |
+| **Notebook** | `notebooks/04_outlier_detection.ipynb` |
+| **Notes** | `docs/notebook_notes.md` |
+| **Figures** | `reports/figures/17_outlier_pca_scatter.png` through `20_outlier_counts_by_month.png` |
+
+Staffing is not an input. Flags are not deletions. The rule for each method, and why a month counts as an outlier, is in the notes file.
+
+---
+
 ## Processed outputs (what analysis reads)
 
 | File | Description |
@@ -134,6 +151,9 @@ Months with fewer than 32 arrivals (10th percentile of `arr_flights`) are left o
 | `data/processed/cluster_assignments.csv` | K-Means and Ward cluster ids |
 | `data/processed/cluster_k_sweep.csv` | Silhouette and inertia for k = 2…8 |
 | `data/processed/cluster_profiles.csv` | Mean delay profile by cluster |
+| `data/processed/outlier_scores.csv` | IQR, k-NN, and isolation-forest flags |
+| `data/processed/outlier_method_summary.csv` | Count and rule for each outlier method |
+| `data/processed/outlier_profiles.csv` | Mean profile of inliers and flagged groups |
 
 ---
 

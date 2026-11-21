@@ -1,0 +1,4 @@
+method_a,method_b,n_both,n_either,jaccard
+iqr,knn,236,913,0.258
+iqr,if,166,951,0.175
+knn,if,269,571,0.471
