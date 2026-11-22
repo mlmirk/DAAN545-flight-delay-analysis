@@ -318,7 +318,7 @@ Same story, different edges:
 
 IQR flags stay flags. They are not removed before clustering.
 
-On `pct_delayed`, we recompute the same 1.5-IQR rule on the months that entered clustering. Flagged rows are **1.4%** of those months. They pile up in the high-cancel group (K-Means 4.4%, Ward 4.1%) and the NAS group (K-Means 3.0%, Ward 2.3%). The carrier and weather groups are almost free of them (about 0.2%). The heavy tail from notebook 01 shows up here as the disruption months, which is why we did not drop those rows first. Dropping them would have shrunk the cancel cluster on purpose.
+On `pct_delayed`, we recompute the same 1.5-IQR rule on the months that entered clustering. Flagged rows are **1.4%** of those months. They pile up in the high-cancel group (K-Means 4.4%, Ward 4.1%) and the NAS group (K-Means 3.0%, Ward 2.3%). The carrier and weather groups are almost free of them (about 0.2%). The heavy tail from notebook 01 shows up here as the disruption months, which is why we did not drop those rows first. Notebook 05 tests that choice. Dropping the 111 delay-rate IQR flags leaves the cancellation cluster intact. Dropping every outlier flag softens it. The comparison is in the outlier-impact section below.
 
 Notebook 03 does not add a second outlier algorithm, and it does not drop these flags before clustering. The comparison with k-NN distance and an isolation forest is in `notebooks/04_outlier_detection.ipynb` and in the outlier section below.
 
@@ -493,4 +493,75 @@ The shape-only rows are the other valid tail. A month can be ordinary on both ra
 - [ ] Figures: `reports/figures/17_` through `20_`
 - [ ] Exports: `outlier_scores.csv`, `outlier_method_summary.csv`, `outlier_agreement.csv`, `outlier_profiles.csv`, `outlier_knn_sweep.csv`, `outlier_monthly_counts.csv`, `outlier_examples.csv`
 - [ ] Write-up keeps the three rules separate from the consensus list, and treats flags as flags
+
+---
+
+## Outliers and clustering (`05_outlier_clustering_impact.ipynb`)
+
+Numbers below come from `src/cluster_outlier_impact.py`. Re-run `notebooks/05_outlier_clustering_impact.ipynb` to reproduce the tables and figures. The published clustering is the **retain** row. Removals happen after the 32-arrival cutoff. That cutoff is not recomputed. Each refit standardizes only the rows it keeps and chooses k from the K-Means silhouette, same rule as notebook 03.
+
+Cluster ids are not comparable across fits. A refit group is named for the retained group whose mean profile is closest, after each mean is scaled by the spread of the five retained profiles. The names are late aircraft, NAS, carrier, cancellation, and weather.
+
+## Where the flags sit in the retained fit
+
+Consensus outliers are not spread evenly. Of the **365** consensus months, the retained K-Means groups hold:
+
+| Retained K-Means role | Consensus months | Share of that cluster |
+|---|---|---|
+| late aircraft | 13 | 0.4% |
+| NAS | 63 | 3.6% |
+| carrier | 21 | 1.4% |
+| cancellation | 155 | 18.3% |
+| weather | 113 | 27.2% |
+
+The cancellation months that are consensus outliers average **10.7%** cancelled. The weather months that are consensus outliers average a weather share of **0.36**. Those two tails are what a removal can change. The late-aircraft, NAS, and carrier groups are almost all inliers.
+
+The 111 delay-rate IQR flags are a different set: 52 in NAS, 37 in cancellation, 18 in late aircraft, 3 in carrier, 1 in weather.
+
+## What stays the same
+
+Every removal still chooses **k = 5**. The silhouette peak does not move. PC1–PC2 stay near 53% of variance, so every fit stays in the six-feature space.
+
+The five cause regimes are still there after the consensus removal and after the delay-rate removal: a large late-aircraft group, a NAS group, a carrier group, a higher-cancellation group, and a higher-weather group. Late aircraft stays near a 0.49 share. NAS stays near 0.46. Carrier stays near 0.56.
+
+| Removal | Rows dropped | K-Means silhouette | K-Means vs Ward ARI | K-Means vs retained labels | Ward vs retained labels | Kept months in the same K-Means role |
+|---|---|---|---|---|---|---|
+| retain | 0 | 0.255 | 0.604 | 1.00 | 1.00 | 100% |
+| drop consensus | 365 (4.5%) | 0.245 | 0.561 | 0.81 | 0.54 | 91% |
+| drop delay IQR | 111 (1.4%) | 0.252 | 0.415 | 0.96 | 0.44 | 99% |
+| drop any flag | 1,035 (12.8%) | 0.230 | 0.419 | 0.62 | 0.25 | 79% |
+
+Figure: `reports/figures/21_outlier_removal_silhouette.png`.
+
+## What changes
+
+**Dropping the consensus outliers softens the two groups those flags live in.** It does not invent a new pattern or delete one.
+
+K-Means cancellation mean falls from **7.16%** to **5.27%**. The group grows from 846 months to 1,088, because milder months join once the extreme tail is gone. Its most common season flips from winter (41%) to summer (45%). Ward’s cancellation group also falls, from **9.11%** to **5.79%**, and it stays a winter group (41%). Weather’s share falls from **0.26** to **0.19** (K-Means) and from **0.22** to **0.16** (Ward). The other three K-Means profiles barely move, and 91% of the kept months stay in the same K-Means role.
+
+**Dropping only the 111 delay-rate IQR flags does not change the K-Means patterns.** Agreement with the retained labels is **0.96**. The cancellation mean is **7.10%** instead of 7.16%, still winter (42%), and the weather share is still **0.26**. The earlier worry that those flags were propping up the cancellation cluster is not what this refit shows. Ward is less steady: its silhouette falls from 0.213 to 0.165 and its agreement with the retained Ward labels is 0.44, but Ward still has a winter cancellation group at **7.46%** and a weather share of **0.28**.
+
+**Dropping every flagged month does change the cancellation pattern.** That removes 1,035 months (12.8%). K-Means cancellation falls to **3.19%** and becomes a summer group (46%) with a late-aircraft share of 0.44. It is a higher-delay version of the common month, not a 7% winter cancellation regime. Ward’s highest cancellation mean is **2.58%**, also summer (49%). Weather share falls to **0.16** (K-Means) and **0.13** (Ward). The carrier, NAS, and late-aircraft groups are still recognizable. Membership moves: 79% of kept months keep their K-Means role, and only 58% keep their Ward role. The late-aircraft role is the one that leaks (71% stay).
+
+Figure: `reports/figures/22_outlier_removal_profiles.png`.
+
+## What to keep in the fit
+
+Retain the outliers in the published clustering.
+
+They are the sharp end of two real regimes, not a handful of bad rows that create a fake cluster. The consensus set is 4.5% of months and sits inside the cancellation and weather groups. Removing it leaves the same five stories at a duller volume, and it is enough to flip the K-Means cancellation season off winter. Removing every flag, including ordinary-rate months with an unusual cause mix, takes the winter cancellation pattern out of both algorithms.
+
+The delay-rate fence alone is too small to be the reason those patterns exist. Keeping those 111 rows changes K-Means membership by about 1%.
+
+---
+
+### Reproducibility
+
+- [ ] `pip install -r requirements.txt` (includes `scikit-learn` and `scipy`)
+- [ ] Enriched panel present: `data/processed/airline_delay_cause_with_airports.csv`
+- [ ] Run `notebooks/05_outlier_clustering_impact.ipynb` top-to-bottom
+- [ ] Figures: `reports/figures/21_outlier_removal_silhouette.png`, `22_outlier_removal_profiles.png`
+- [ ] Exports: `cluster_outlier_scenario_summary.csv`, `cluster_outlier_profiles.csv`, `cluster_outlier_stability.csv`, `cluster_outlier_k_sweep.csv`, `cluster_outlier_pattern_counts.csv`
+- [ ] Write-up says the five cause regimes survive a consensus removal, and the winter cancellation regime does not survive dropping every flag
+
 

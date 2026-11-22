@@ -150,6 +150,7 @@ Used in `notebooks/04_outlier_detection.ipynb`. Longer write-up: [`notebook_note
 | **Rate only** | IQR flag, and neither distance method. Usually a high cancellation rate with an ordinary cause mix. |
 | **Shape only** | k-NN or the forest, and not IQR. Usually an unusual cause mix (often weather-heavy) at an ordinary delay rate. |
 | **Rate and shape** | IQR and at least one distance method. High rates and an isolated profile together. |
+| **Outlier removal** | Refitting K-Means and Ward after dropping flagged months. Notebook 05. The published fit keeps every month. Dropping consensus outliers softens the cancellation and weather groups. Dropping every flag takes the winter cancellation pattern out. |
 
 ---
 
@@ -179,6 +180,7 @@ Used in `notebooks/04_outlier_detection.ipynb`. Longer write-up: [`notebook_note
 | `notebooks/02_association_rules.ipynb` | Binary encoding + rules |
 | `notebooks/03_clustering.ipynb` | K-Means and Ward clustering |
 | `notebooks/04_outlier_detection.ipynb` | IQR, k-NN, and isolation forest flags |
+| `notebooks/05_outlier_clustering_impact.ipynb` | Clustering with outliers kept vs removed |
 | `data/processed/outlier_scores.csv` | Per-month outlier scores and flags |
 | `docs/notebook_notes.md` | Write-up notes (not submitted as the notebook) |
 

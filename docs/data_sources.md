@@ -140,6 +140,23 @@ Staffing is not an input. Flags are not deletions. The rule for each method, and
 
 ---
 
+### 8. Clustering with outliers removed (derived — not a new download)
+
+| | |
+|---|---|
+| **What** | The same K-Means and Ward fit after three outlier removals, plus silhouette curves and matched profiles |
+| **Built from** | `data/processed/airline_delay_cause_with_airports.csv` |
+| **Removals** | Consensus flags (365 months), delay-rate IQR flags (111), or any outlier flag (1,035). The published fit removes none. |
+| **Local exports** | `data/processed/cluster_outlier_scenario_summary.csv`, `cluster_outlier_profiles.csv`, `cluster_outlier_stability.csv`, `cluster_outlier_k_sweep.csv`, `cluster_outlier_pattern_counts.csv` |
+| **Code** | `src/cluster_outlier_impact.py` → `run_outlier_impact` |
+| **Notebook** | `notebooks/05_outlier_clustering_impact.ipynb` |
+| **Notes** | `docs/notebook_notes.md` |
+| **Figures** | `reports/figures/21_outlier_removal_silhouette.png`, `22_outlier_removal_profiles.png` |
+
+The 32-arrival cutoff is not recomputed after a removal. k is chosen again on each reduced set. On this extract it stays at 5.
+
+---
+
 ## Processed outputs (what analysis reads)
 
 | File | Description |
@@ -154,6 +171,8 @@ Staffing is not an input. Flags are not deletions. The rule for each method, and
 | `data/processed/outlier_scores.csv` | IQR, k-NN, and isolation-forest flags |
 | `data/processed/outlier_method_summary.csv` | Count and rule for each outlier method |
 | `data/processed/outlier_profiles.csv` | Mean profile of inliers and flagged groups |
+| `data/processed/cluster_outlier_scenario_summary.csv` | k, silhouette, and key means with outliers kept or removed |
+| `data/processed/cluster_outlier_profiles.csv` | Cluster profiles for each removal |
 
 ---
 

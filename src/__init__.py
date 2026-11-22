@@ -1,6 +1,7 @@
 """Public helpers for the DAAN545 flight-delay analysis project."""
 
 from .association_rules import build_transaction_matrix
+from .cluster_outlier_impact import run_outlier_impact
 from .clustering import run_clustering
 from .outliers import run_outlier_detection
 from .cleaning import (
@@ -55,5 +56,6 @@ __all__ = [
     "quality_overview",
     "run_clustering",
     "run_outlier_detection",
+    "run_outlier_impact",
     "summarize_numeric",
 ]
