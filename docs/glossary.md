@@ -131,7 +131,7 @@ Used in `notebooks/03_clustering.ipynb`. Longer write-up: [`notebook_notes.md`](
 | **Ward** | Hierarchical clustering. Merges groups so within-group variance stays small. We cut the tree at the same k as K-Means. |
 | **Silhouette** | How well a row sits in its own cluster versus the next closest one. Higher is tighter. We pick k from the K-Means silhouette. Around 0.25 on this data means the groups overlap. |
 | **Adjusted Rand index** | How much two labelings agree, adjusted for chance. 1 = same groups. Our K-Means vs Ward value is about 0.60. |
-| **PCA** | Compresses scaled features into fewer components. We plot the first two. We only cluster in that plane if they explain at least 70% of the variance. Here they explain about 53%, so clustering stays in the original scaled features. |
+| **PCA** | Compresses scaled features into fewer components. We plot the first two. We only cluster in that plane if they explain at least 70% of the variance. Here they explain about 53%, so clustering stays in the original scaled features. Four PCs are needed to pass 80% (`notebooks/06_dimensionality_reduction.ipynb`). |
 | **Cause share** | That cause’s delay minutes ÷ `arr_delay`. Used as cluster features. |
 
 ---
@@ -151,6 +151,20 @@ Used in `notebooks/04_outlier_detection.ipynb`. Longer write-up: [`notebook_note
 | **Shape only** | k-NN or the forest, and not IQR. Usually an unusual cause mix (often weather-heavy) at an ordinary delay rate. |
 | **Rate and shape** | IQR and at least one distance method. High rates and an isolated profile together. |
 | **Outlier removal** | Refitting K-Means and Ward after dropping flagged months. Notebook 05. The published fit keeps every month. Dropping consensus outliers softens the cancellation and weather groups. Dropping every flag takes the winter cancellation pattern out. |
+
+---
+
+## Dimensionality reduction
+
+Used in `notebooks/06_dimensionality_reduction.ipynb`. Longer write-up: [`notebook_notes.md`](notebook_notes.md). Same months and same six profile features as clustering.
+
+| Term | Meaning |
+|------|---------|
+| **Loading** | How much a feature contributes to a principal component. |
+| **t-SNE** | Nonlinear 2D map that tries to keep nearby months nearby. Visualization only; we do not cluster in t-SNE coordinates. |
+| **Perplexity** | t-SNE neighborhood-size knob. We used 30. |
+| **Trustworthiness** | How often a point’s neighbors in the embedding were already neighbors in the original space (higher is better). |
+| **80% variance cutoff** | Number of PCs kept when we re-cluster in PCA space. Here that is 4 PCs (88% of scaled variance). |
 
 ---
 
@@ -181,7 +195,9 @@ Used in `notebooks/04_outlier_detection.ipynb`. Longer write-up: [`notebook_note
 | `notebooks/03_clustering.ipynb` | K-Means and Ward clustering |
 | `notebooks/04_outlier_detection.ipynb` | IQR, k-NN, and isolation forest flags |
 | `notebooks/05_outlier_clustering_impact.ipynb` | Clustering with outliers kept vs removed |
+| `notebooks/06_dimensionality_reduction.ipynb` | PCA and t-SNE on the same delay-profile features |
 | `data/processed/outlier_scores.csv` | Per-month outlier scores and flags |
+| `data/processed/dimred_coordinates.csv` | PCA and t-SNE coordinates plus K-Means labels |
 | `docs/notebook_notes.md` | Write-up notes (not submitted as the notebook) |
 
 ---

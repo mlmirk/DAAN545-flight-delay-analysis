@@ -239,7 +239,7 @@ PCA is fit on the same scaled features. Share of variance:
 |-----|-----|-----|-----|-----|-----|
 | 28.9% | 24.2% | 19.4% | 15.7% | 11.8% | ~0% |
 
-The first two components explain **53%**. Our rule was to cluster in PC1–PC2 only if they explained at least 70%. They do not, so **clustering stays in the 6-feature scaled space**. The last component is almost zero because the cause shares add up to about 1. One share is basically determined by the others.
+The first two components explain **53%**. Our rule was to cluster in PC1–PC2 only if they explained at least 70%. They do not, so **clustering stays in the 6-feature scaled space**. The last component is almost zero because the cause shares add up to about 1. One share is basically determined by the others. Notebook 06 takes this further: four PCs are needed to pass 80% variance, and t-SNE is used as a second 2D view.
 
 The scatters (`14_kmeans_pca_scatter.png`, `15_ward_pca_scatter.png`) are a flattened view. The middle of the cloud mixes colors. That matches the silhouette: groups are real enough to profile, but they are not separated blobs in two dimensions.
 
@@ -563,5 +563,118 @@ The delay-rate fence alone is too small to be the reason those patterns exist. K
 - [ ] Figures: `reports/figures/21_outlier_removal_silhouette.png`, `22_outlier_removal_profiles.png`
 - [ ] Exports: `cluster_outlier_scenario_summary.csv`, `cluster_outlier_profiles.csv`, `cluster_outlier_stability.csv`, `cluster_outlier_k_sweep.csv`, `cluster_outlier_pattern_counts.csv`
 - [ ] Write-up says the five cause regimes survive a consensus removal, and the winter cancellation regime does not survive dropping every flag
+
+---
+
+## Dimensionality reduction (`06_dimensionality_reduction.ipynb`)
+
+Same scaled 6-feature matrix as clustering (`src/dimred.py` reuses `prepare_cluster_frame`). 8,069 carrier–airport–months; 32-arrival cutoff. No new data. Figures `23_` through `29_` so they do not collide with outlier figures `17_`–`22_`.
+
+### Why reduce
+
+Six features is already small, but they are not independent: the four cause shares add to about 1, and delay rate is mixed with those shares. Clustering already showed that PC1–PC2 hold only **53.1%** of scaled variance, so a 2D scatter is a view, not the clustering space. Dimensionality reduction answers three report questions: how much structure is linear (PCA), whether a nonlinear map shows tighter neighborhoods (t-SNE), and whether clustering in a reduced PCA space changes the five delay profiles.
+
+### PCA
+
+| PC1 | PC2 | PC3 | PC4 | PC5 | PC6 |
+|-----|-----|-----|-----|-----|-----|
+| 28.9% | 24.2% | 19.4% | 15.7% | 11.8% | 0.05% |
+
+Cumulative: 28.9% → **53.1%** → 72.5% → **88.1%** → 100%. The 80% cutoff is met at **4 components** (88.1%). Two components fail the 70% clustering rule from notebook 03.
+
+Loadings (first three PCs):
+
+| Feature | PC1 | PC2 | PC3 |
+|---------|-----|-----|-----|
+| `pct_delayed` | −0.43 | −0.12 | 0.31 |
+| `pct_cancelled` | −0.29 | −0.15 | **0.61** |
+| `share_carrier` | **0.66** | −0.04 | 0.11 |
+| `share_weather` | 0.17 | −0.21 | **0.60** |
+| `share_nas` | −0.37 | **−0.63** | −0.40 |
+| `share_late_aircraft` | −0.36 | **0.72** | 0.02 |
+
+Plain reading: **PC1** separates carrier-heavy months from delayed / NAS / late-aircraft months. **PC2** is late aircraft versus NAS (the two largest competing delay-minute shares). **PC3** picks up cancellations and weather share — the disruption axis that showed up as the small winter/slot cluster.
+
+Figures: `23_pca_variance.png`, `24_pca_before_after.png`, `25_pca_3d.png`, `29_pca_loadings.png`.
+
+### t-SNE
+
+sklearn `TSNE`, 2 components, perplexity **30**, `max_iter=1000`, `init='pca'`, `random_state=42`. We do **not** cluster in t-SNE coordinates.
+
+Trustworthiness (5 neighbors): **t-SNE 0.998**, 2D PCA **0.826**. Local neighborhoods are much better preserved by t-SNE. PCA still wins for a global variance story and for a clustering space you can reconstruct.
+
+Figures: `26_pca_vs_tsne_delay.png`, `28_tsne_by_kmeans.png`.
+
+### How DR affects clustering
+
+K-Means, k chosen from original-space silhouette (**k = 5**, silhouette **0.255**). Second run: K-Means in the first **4 PCs**.
+
+| Space | Silhouette | Notes |
+|-------|------------|--------|
+| Original 6 features | 0.255 | Same as clustering notebook |
+| 4 PCs, scored in PCA space | 0.276 | Looks slightly tighter because leftover variance is gone |
+| Those 4-PC labels, scored back in original space | 0.242 | Slightly worse than clustering in the full matrix |
+
+Adjusted Rand index between original K-Means and 4-PC K-Means at k = 5: **0.785**. That is stronger agreement than K-Means vs Ward (0.604). Dropping PC5–PC6 does **not** rewrite the five delay profiles. Clustering in **only** PC1–PC2 would still be the wrong move: those two axes hold 53%, not 80%.
+
+k sweep (ARI vs original K-Means):
+
+| k | Silhouette original | Silhouette in 4-PC space | ARI |
+|---|---------------------|--------------------------|-----|
+| 2 | 0.225 | 0.252 | 0.987 |
+| 3 | 0.236 | 0.264 | 0.983 |
+| 4 | 0.248 | 0.264 | 0.794 |
+| **5** | **0.255** | **0.276** | **0.785** |
+| 6 | 0.217 | 0.216 | 0.435 |
+| 7 | 0.196 | 0.206 | 0.443 |
+| 8 | 0.186 | 0.205 | 0.758 |
+
+Figure: `27_kmeans_original_vs_pca.png`.
+
+### Report paste (section 2)
+
+**2. Dimensionality Reduction**
+
+**2.1 Purpose**
+
+Clustering was performed in the original six standardized features because the first two principal components explained only 53% of scaled variance. Dimensionality reduction was used next to (1) describe that linear structure, (2) provide a nonlinear 2D view of the same months, and (3) test whether clustering in a reduced PCA space changes the five delay profiles from section 1. The input is unchanged: carrier–airport–month observations with at least 32 arriving flights, using percentage delayed, percentage cancelled, and the proportional shares of carrier, weather, NAS, and late-aircraft delay minutes.
+
+**2.2 PCA**
+
+PCA was applied to the same standardized matrix used for K-Means and Ward clustering. Figure 5 shows the variance explained by each component. The first two components explain 53.1% of variance (28.9% and 24.2%). Three components reach 72.5%, and four components reach 88.1%, which is the first solution above an 80% cumulative-variance cutoff. The sixth component is essentially zero because the cause shares are compositional.
+
+Loadings (Figure 11) give the components an operational reading. PC1 contrasts carrier-dominant months with months that have higher delay rates and larger NAS and late-aircraft shares. PC2 contrasts late-aircraft share with NAS share. PC3 is associated with cancellation rate and weather share. These axes match the late-aircraft, NAS, carrier, weather, and cancellation-heavy profiles identified in clustering rather than introducing a separate typology.
+
+Figure 6 compares two original features with the PC1–PC2 plane, colored by delay rate. Figure 7 shows the first three components in 3D. Both views confirm what the silhouette scores already suggested: the cloud is continuous, with some structure, not five well-separated blobs.
+
+**2.3 t-SNE**
+
+t-SNE was used as a complementary 2D embedding with perplexity 30. Unlike PCA, t-SNE is designed to preserve local neighborhoods and is not used as a clustering space. Trustworthiness (5 neighbors) was 0.998 for t-SNE versus 0.826 for 2D PCA, indicating that nearby months in the original feature space remain nearby on the t-SNE map more consistently than on the PCA scatter. Figure 8 shows both maps colored by delay rate. Figure 10 overlays the original-space K-Means labels on t-SNE. The five profiles occupy overlapping regions, with the cancellation-heavy and NAS-heavy months more visible as local concentrations than they are in PC1–PC2.
+
+**2.4 Effect on clustering**
+
+K-Means was re-run in the four principal components that retain 88% of scaled variance, using the same k = 5 selected in section 1. Agreement with the original six-feature K-Means solution is high (Adjusted Rand Index = 0.785). Silhouette in the four-component space is slightly higher (0.276) because discarded variance is no longer in the distance calculation; when those labels are scored back in the original six features, silhouette falls slightly to 0.242 compared with 0.255 for clustering in the full matrix.
+
+The practical conclusion is that a 2D PCA plot is not an adequate clustering space, but a 4-component truncation does not change the delay-profile story. t-SNE is the better visual check of local structure; PCA remains the method that explains variance and can be used as a reduced clustering space when enough components are kept.
+
+Figure mapping for the writer:
+
+| Report figure | File |
+|---------------|------|
+| 5 variance | `23_pca_variance.png` |
+| 6 before/after | `24_pca_before_after.png` |
+| 7 PCA 3D | `25_pca_3d.png` |
+| 8 PCA vs t-SNE | `26_pca_vs_tsne_delay.png` |
+| 9 original vs PCA K-Means | `27_kmeans_original_vs_pca.png` |
+| 10 t-SNE by cluster | `28_tsne_by_kmeans.png` |
+| 11 loadings | `29_pca_loadings.png` |
+
+### Reproducibility
+
+- [ ] `pip install -r requirements.txt` (includes `scikit-learn`)
+- [ ] Enriched panel present: `data/processed/airline_delay_cause_with_airports.csv`
+- [ ] Run `notebooks/06_dimensionality_reduction.ipynb` top-to-bottom
+- [ ] Figures: `reports/figures/23_` through `29_`
+- [ ] Exports: `dimred_coordinates.csv`, `pca_loadings.csv`, `dimred_cluster_compare.csv`
 
 

@@ -157,6 +157,22 @@ The 32-arrival cutoff is not recomputed after a removal. k is chosen again on ea
 
 ---
 
+### 9. Dimensionality reduction (derived — not a new download)
+
+| | |
+|---|---|
+| **What** | PCA scores/loadings and t-SNE coordinates on the clustering feature matrix; K-Means in original space vs the PCs that hold ≥80% variance |
+| **Built from** | `data/processed/airline_delay_cause_with_airports.csv` |
+| **Local exports** | `data/processed/dimred_coordinates.csv`, `pca_loadings.csv`, `dimred_cluster_compare.csv` |
+| **Code** | `src/dimred.py` → `run_dimred` |
+| **Notebook** | `notebooks/06_dimensionality_reduction.ipynb` |
+| **Notes** | `docs/notebook_notes.md` |
+| **Figures** | `reports/figures/23_pca_variance.png` through `29_pca_loadings.png` |
+
+Same 32-arrival cutoff and six delay-profile features as clustering. t-SNE is a view only. Staffing is not an input.
+
+---
+
 ## Processed outputs (what analysis reads)
 
 | File | Description |
@@ -173,6 +189,9 @@ The 32-arrival cutoff is not recomputed after a removal. k is chosen again on ea
 | `data/processed/outlier_profiles.csv` | Mean profile of inliers and flagged groups |
 | `data/processed/cluster_outlier_scenario_summary.csv` | k, silhouette, and key means with outliers kept or removed |
 | `data/processed/cluster_outlier_profiles.csv` | Cluster profiles for each removal |
+| `data/processed/dimred_coordinates.csv` | PCA and t-SNE coordinates plus K-Means labels |
+| `data/processed/pca_loadings.csv` | Feature loadings on each principal component |
+| `data/processed/dimred_cluster_compare.csv` | Silhouette / ARI for original vs PCA-space K-Means |
 
 ---
 

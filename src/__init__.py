@@ -3,6 +3,7 @@
 from .association_rules import build_transaction_matrix
 from .cluster_outlier_impact import run_outlier_impact
 from .clustering import run_clustering
+from .dimred import run_dimred
 from .outliers import run_outlier_detection
 from .cleaning import (
     CAUSE_COUNT_COLS,
@@ -55,6 +56,7 @@ __all__ = [
     "parse_state_from_airport_name",
     "quality_overview",
     "run_clustering",
+    "run_dimred",
     "run_outlier_detection",
     "run_outlier_impact",
     "summarize_numeric",
