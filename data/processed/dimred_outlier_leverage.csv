@@ -1,0 +1,5 @@
+outlier_pattern,n_rows,share_of_rows,pc1_ss_share,pc2_ss_share,pc3_ss_share,mean_pc1,mean_pc2,mean_pc3
+inlier,7034,0.8717,0.702,0.764,0.511,0.06,0.13,-0.22
+rate_and_shape,249,0.0309,0.089,0.086,0.186,-1.42,-1.37,2.13
+rate_only,464,0.0575,0.068,0.034,0.128,-1.07,-0.27,1.44
+shape_only,322,0.0399,0.141,0.116,0.175,1.25,-1.39,1.12

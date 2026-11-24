@@ -1,0 +1,5 @@
+scenario,n_rows,n_removed,removed_pct,pc1_share,pc2_share,pc1_pc2_share,n_pcs_for_80pct,variance_in_kept_pcs,trustworthiness_pca2,trustworthiness_tsne,reconstruction_mse_kept_pcs,cosine_pc1,cosine_pc2,cosine_pc3,pc2_sign_flipped,pc3_sign_flipped
+retain,8069,0,0.0,0.2893,0.2417,0.531,4,0.8813,0.826,0.998,0.1187,1.0,1.0,1.0,False,False
+drop_consensus,7704,365,4.52,0.2983,0.2379,0.5363,4,0.883,0.82,0.999,0.117,0.991,0.972,0.977,True,False
+drop_iqr_delay,7958,111,1.38,0.2881,0.2394,0.5275,4,0.88,0.825,0.998,0.12,0.996,0.995,0.999,False,False
+drop_any_method,7034,1035,12.83,0.2993,0.2451,0.5443,4,0.8921,0.821,0.998,0.1079,0.981,0.972,0.966,True,False

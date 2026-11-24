@@ -165,6 +165,7 @@ Used in `notebooks/06_dimensionality_reduction.ipynb`. Longer write-up: [`notebo
 | **Perplexity** | t-SNE neighborhood-size knob. We used 30. |
 | **Trustworthiness** | How often a point’s neighbors in the embedding were already neighbors in the original space (higher is better). |
 | **80% variance cutoff** | Number of PCs kept when we re-cluster in PCA space. Here that is 4 PCs (88% of scaled variance). |
+| **Outliers and PCA** | Refitting PCA and t-SNE after dropping flagged months (notebook 07). The component reading stays the same. Outliers account for about half of PC3’s sum of squares, the cancellation and weather axis. |
 
 ---
 
@@ -196,6 +197,7 @@ Used in `notebooks/06_dimensionality_reduction.ipynb`. Longer write-up: [`notebo
 | `notebooks/04_outlier_detection.ipynb` | IQR, k-NN, and isolation forest flags |
 | `notebooks/05_outlier_clustering_impact.ipynb` | Clustering with outliers kept vs removed |
 | `notebooks/06_dimensionality_reduction.ipynb` | PCA and t-SNE on the same delay-profile features |
+| `notebooks/07_outlier_dimred_impact.ipynb` | PCA and t-SNE with outliers kept vs removed |
 | `data/processed/outlier_scores.csv` | Per-month outlier scores and flags |
 | `data/processed/dimred_coordinates.csv` | PCA and t-SNE coordinates plus K-Means labels |
 | `docs/notebook_notes.md` | Write-up notes (not submitted as the notebook) |

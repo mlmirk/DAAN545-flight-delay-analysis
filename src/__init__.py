@@ -4,6 +4,7 @@ from .association_rules import build_transaction_matrix
 from .cluster_outlier_impact import run_outlier_impact
 from .clustering import run_clustering
 from .dimred import run_dimred
+from .dimred_outlier_impact import run_dimred_outlier_impact
 from .outliers import run_outlier_detection
 from .cleaning import (
     CAUSE_COUNT_COLS,
@@ -57,6 +58,7 @@ __all__ = [
     "quality_overview",
     "run_clustering",
     "run_dimred",
+    "run_dimred_outlier_impact",
     "run_outlier_detection",
     "run_outlier_impact",
     "summarize_numeric",

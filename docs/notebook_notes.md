@@ -677,4 +677,70 @@ Figure mapping for the writer:
 - [ ] Figures: `reports/figures/23_` through `29_`
 - [ ] Exports: `dimred_coordinates.csv`, `pca_loadings.csv`, `dimred_cluster_compare.csv`
 
+---
+
+## Outliers and dimensionality reduction (`07_outlier_dimred_impact.ipynb`)
+
+Numbers below come from `src/dimred_outlier_impact.py`. Re-run `notebooks/07_outlier_dimred_impact.ipynb` to reproduce the tables and figures. The published reduction is the **retain** row. Removals happen after the 32-arrival cutoff. That cutoff is not recomputed. Each refit standardizes only the rows it keeps. t-SNE uses perplexity 30, `init='pca'`, and `random_state=42`, same as notebook 06.
+
+PCA signs are arbitrary. Before loadings are compared, each refit component is flipped so it points the same way as the matching retained component. The match is one-to-one: PC1 still matches PC1, and so on, in every removal.
+
+## Where the flags sit in the retained PCA
+
+Sum of squares on a component is the variance that component is explaining. Inliers are **87.2%** of the 8,069 months. They account for **70%** of PC1’s sum of squares, **76%** of PC2’s, and only **51%** of PC3’s. The other 12.8% of months account for the rest of PC3.
+
+| Pattern | Rows | Share of rows | Share of PC1 SS | Share of PC2 SS | Share of PC3 SS | Mean PC3 |
+|---|---|---|---|---|---|---|
+| inlier | 7,034 | 87.2% | 0.70 | 0.76 | 0.51 | −0.22 |
+| rate only | 464 | 5.8% | 0.07 | 0.03 | 0.13 | +1.44 |
+| shape only | 322 | 4.0% | 0.14 | 0.12 | 0.18 | +1.12 |
+| rate and shape | 249 | 3.1% | 0.09 | 0.09 | 0.19 | +2.13 |
+
+PC3 is the cancellation and weather axis from notebook 06. The flagged months sit out on that axis (mean PC3 from +1.1 to +2.1, against −0.22 for inliers). They do not form a direction of their own. Figure: `reports/figures/32_outlier_position_pca_tsne.png`. On the retained t-SNE map the same months sit on the fringe of the cloud, not in a separate island.
+
+## What stays the same
+
+| Removal | PC1 | PC2 | PC1–PC2 | PCs for 80% | Variance in those PCs | PCA-2D trust | t-SNE trust | Cosine PC1 / PC2 / PC3 |
+|---|---|---|---|---|---|---|---|---|
+| retain | 28.9% | 24.2% | **53.1%** | 4 | 88.1% | 0.826 | 0.998 | 1 / 1 / 1 |
+| drop consensus | 29.8% | 23.8% | 53.6% | 4 | 88.3% | 0.820 | 0.999 | 0.991 / 0.972 / 0.977 |
+| drop delay IQR | 28.8% | 23.9% | 52.7% | 4 | 88.0% | 0.825 | 0.998 | 0.996 / 0.995 / 0.999 |
+| drop any flag | 29.9% | 24.5% | 54.4% | 4 | 89.2% | 0.821 | 0.998 | 0.981 / 0.972 / 0.966 |
+
+The scree shape does not move. Two components still hold about half the variance, so the 70% rule from notebook 03 still says not to cluster in PC1–PC2. Four components are still the first set past 80%. The sixth component is still about zero, because the cause shares still add to about 1. Reconstruction error on the four kept components stays near 0.12 (0.119 retained, 0.108 after dropping every flag).
+
+After the sign alignment, the loadings tell the same operational story:
+
+- **PC1** is still carrier share against delay rate, NAS, and late aircraft.
+- **PC2** is still late aircraft against NAS. Dropping the consensus set, or every flag, flips the raw sign of PC2. That is a convention. The absolute cosine with the retained PC2 is still 0.97.
+- **PC3** is still cancellations and weather share. Its cosine stays at least 0.97.
+
+Trustworthiness of the 2D maps does not depend on the outliers. t-SNE stays at 0.998. Two-dimensional PCA stays near 0.82.
+
+Figures: `reports/figures/30_pca_variance_by_outlier_removal.png`, `31_pca_loadings_by_outlier_removal.png`.
+
+## What changes
+
+The change is the **weight** of PC3, not its meaning. Flagged months are 13% of the rows and about half of PC3’s sum of squares. Removing them pulls a little variance forward: PC1–PC2 rise from 53.1% to 54.4% in the strictest removal, and the four-component total rises from 88.1% to 89.2%. That is not enough to make a 2D map a clustering space, and it does not replace the carrier / NAS / late-aircraft / cancellation / weather reading of the components.
+
+Dropping only the 111 delay-rate IQR flags leaves the reduction essentially untouched (PC3 cosine 0.999, PC1–PC2 52.7%).
+
+## What to keep in the fit
+
+Retain the outliers in the published PCA and t-SNE.
+
+They stretch the cancellation-and-weather component that the reduction already has. They do not create a new component, and they are not what forces PC1–PC2 to stop at 53%. A map fit without them tells the same story with a slightly thinner tail. The published figures should keep the tail, because that tail is the disruption pattern the rest of the project is describing.
+
+---
+
+### Reproducibility
+
+- [ ] `pip install -r requirements.txt` (includes `scikit-learn`)
+- [ ] Enriched panel present: `data/processed/airline_delay_cause_with_airports.csv`
+- [ ] Run `notebooks/07_outlier_dimred_impact.ipynb` top-to-bottom
+- [ ] Figures: `reports/figures/30_` through `32_`
+- [ ] Exports: `dimred_outlier_summary.csv`, `dimred_outlier_variance.csv`, `dimred_outlier_loadings.csv`, `dimred_outlier_loading_match.csv`, `dimred_outlier_leverage.csv`
+- [ ] Write-up says the component reading is stable, and outliers account for about half of PC3’s sum of squares
+
+
 

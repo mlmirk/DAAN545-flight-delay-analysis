@@ -173,6 +173,23 @@ Same 32-arrival cutoff and six delay-profile features as clustering. t-SNE is a 
 
 ---
 
+### 10. Dimensionality reduction with outliers removed (derived — not a new download)
+
+| | |
+|---|---|
+| **What** | PCA variance, sign-aligned loadings, and t-SNE trustworthiness after the same three outlier removals used for clustering |
+| **Built from** | `data/processed/airline_delay_cause_with_airports.csv` |
+| **Removals** | Consensus flags (365 months), delay-rate IQR flags (111), or any outlier flag (1,035). The published fit removes none. |
+| **Local exports** | `data/processed/dimred_outlier_summary.csv`, `dimred_outlier_variance.csv`, `dimred_outlier_loadings.csv`, `dimred_outlier_loading_match.csv`, `dimred_outlier_leverage.csv` |
+| **Code** | `src/dimred_outlier_impact.py` → `run_dimred_outlier_impact` |
+| **Notebook** | `notebooks/07_outlier_dimred_impact.ipynb` |
+| **Notes** | `docs/notebook_notes.md` |
+| **Figures** | `reports/figures/30_pca_variance_by_outlier_removal.png` through `32_outlier_position_pca_tsne.png` |
+
+The 32-arrival cutoff is not recomputed. Four components still pass 80% of variance after every removal. Component signs are aligned to the retained fit before loadings are compared.
+
+---
+
 ## Processed outputs (what analysis reads)
 
 | File | Description |
@@ -192,6 +209,8 @@ Same 32-arrival cutoff and six delay-profile features as clustering. t-SNE is a 
 | `data/processed/dimred_coordinates.csv` | PCA and t-SNE coordinates plus K-Means labels |
 | `data/processed/pca_loadings.csv` | Feature loadings on each principal component |
 | `data/processed/dimred_cluster_compare.csv` | Silhouette / ARI for original vs PCA-space K-Means |
+| `data/processed/dimred_outlier_summary.csv` | PCA variance and trustworthiness with outliers kept or removed |
+| `data/processed/dimred_outlier_loadings.csv` | Sign-aligned PCA loadings for each removal |
 
 ---
 

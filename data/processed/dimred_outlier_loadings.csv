@@ -1,0 +1,25 @@
+scenario,feature,PC1,PC2,PC3,PC4,PC5,PC6,feature_label
+retain,pct_delayed,-0.431,-0.12,0.314,-0.441,0.712,-0.001,delayed
+retain,pct_cancelled,-0.287,-0.149,0.61,-0.304,-0.656,-0.001,cancelled
+retain,share_carrier,0.661,-0.043,0.108,-0.486,0.045,0.557,carrier
+retain,share_weather,0.167,-0.214,0.601,0.677,0.22,0.242,weather
+retain,share_nas,-0.369,-0.625,-0.395,0.083,-0.103,0.547,NAS
+retain,share_late_aircraft,-0.361,0.724,0.02,0.107,-0.038,0.576,late aircraft
+drop_consensus,pct_delayed,-0.429,-0.116,0.379,-0.319,0.746,0.001,delayed
+drop_consensus,pct_cancelled,-0.303,-0.053,0.602,-0.361,-0.643,-0.001,cancelled
+drop_consensus,share_carrier,0.653,0.062,0.169,-0.458,0.102,0.567,carrier
+drop_consensus,share_weather,0.174,-0.079,0.615,0.733,0.089,0.201,weather
+drop_consensus,share_nas,-0.269,-0.737,-0.267,0.071,-0.104,0.546,NAS
+drop_consensus,share_late_aircraft,-0.442,0.656,-0.126,0.126,-0.035,0.583,late aircraft
+drop_iqr_delay,pct_delayed,-0.414,-0.119,0.351,-0.44,0.705,-0.001,delayed
+drop_iqr_delay,pct_cancelled,-0.275,-0.173,0.602,-0.288,-0.67,-0.001,cancelled
+drop_iqr_delay,share_carrier,0.666,0.032,0.129,-0.474,0.037,0.559,carrier
+drop_iqr_delay,share_weather,0.174,-0.206,0.586,0.694,0.21,0.243,weather
+drop_iqr_delay,share_nas,-0.312,-0.669,-0.393,0.043,-0.072,0.542,NAS
+drop_iqr_delay,share_late_aircraft,-0.426,0.682,-0.001,0.125,-0.056,0.578,late aircraft
+drop_any_method,pct_delayed,-0.469,-0.125,0.315,-0.367,0.728,0.001,delayed
+drop_any_method,pct_cancelled,-0.369,-0.079,0.546,-0.347,-0.662,-0.001,cancelled
+drop_any_method,share_carrier,0.637,0.047,0.236,-0.469,0.079,0.557,carrier
+drop_any_method,share_weather,0.1,-0.05,0.661,0.706,0.125,0.188,weather
+drop_any_method,share_nas,-0.225,-0.734,-0.288,0.118,-0.087,0.553,NAS
+drop_any_method,share_late_aircraft,-0.421,0.659,-0.163,0.108,-0.035,0.591,late aircraft
